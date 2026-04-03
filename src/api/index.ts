@@ -1,0 +1,1 @@
+export { search, searchSongs, getTrending, getNewReleases, getPlaylistTracks, getCuratedSection, getSongDetails, getAlbumDetails, getArtistDetails, getLyrics, getPlaylistDetails, getDeezerChart, getSimilarSongs, setPreferredQuality, getTopPlaylists, getTopArtists, getTopAlbums } from './musicService';

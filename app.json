@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Tunify",
+    "slug": "tunify",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0e0e0e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tunify.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0e0e0e"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.tunify.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-font",
+        {
+          "fonts": []
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}
