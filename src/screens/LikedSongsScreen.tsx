@@ -83,10 +83,14 @@ export function LikedSongsScreen({ navigation }: any) {
 
             {likedSongs.length === 0 && (
               <View style={styles.emptyState}>
-                <MaterialIcon name="favorite-border" size={48} color={colors.onSurfaceVariant} />
-                <Text style={styles.emptyText}>Songs you like will appear here</Text>
-                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Main' }] })}>
-                  <Text style={styles.emptyAction}>Find songs to like</Text>
+                <View style={styles.emptyIconWrap}>
+                  <MaterialIcon name="favorite-border" size={64} color={colors.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>No liked songs yet</Text>
+                <Text style={styles.emptyText}>Tap the heart icon on any song to save it here for easy access</Text>
+                <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Main' }] })}>
+                  <MaterialIcon name="search" size={20} color={colors.onPrimary} />
+                  <Text style={styles.emptyBtnText}>Explore Songs</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -226,17 +230,44 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
-    gap: 12,
+    paddingHorizontal: 40,
+    gap: 16,
+  },
+  emptyIconWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    ...typography.titleLg,
+    color: colors.onSurface,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   emptyText: {
     ...typography.bodyMd,
     color: colors.onSurfaceVariant,
+    textAlign: 'center',
+    lineHeight: 22,
   },
-  emptyAction: {
-    ...typography.titleSm,
-    color: colors.primary,
-    fontWeight: '700',
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
     marginTop: 8,
+  },
+  emptyBtnText: {
+    ...typography.titleSm,
+    color: colors.onPrimary,
+    fontWeight: '700',
   },
   trackRow: {
     flexDirection: 'row',

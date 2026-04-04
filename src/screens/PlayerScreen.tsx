@@ -22,6 +22,7 @@ import Slider from '@react-native-community/slider';
 import { haptics, downloadTrack } from '../utils/platform';
 import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
+import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
 import { BottomSheetMenu, PlaylistPicker, QueueViewer } from '../components/BottomSheet';
 import { usePlayerStore, useLibraryStore } from '../stores';
 import { getLyrics, searchSongs } from '../api/musicService';
@@ -962,6 +963,7 @@ export function PlayerScreen({ navigation }: any) {
           </View>
         </LinearGradient>
       </Modal>
+      <FirstTimeTooltip screen="player" />
     </View>
   );
 }

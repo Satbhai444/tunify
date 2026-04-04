@@ -7,11 +7,14 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
+import { useSettingsStore } from '../stores/settingsStore';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const ONBOARDING_KEY = 'tunify_onboarding_done';
@@ -44,7 +47,8 @@ const ARTIST_OPTIONS = [
 ];
 
 export function OnboardingScreen({ navigation }: any) {
-  const [step, setStep] = useState<'genres' | 'artists'>('genres');
+  const [step, setStep] = useState<'name' | 'genres' | 'artists'>('name');
+  const [userName, setUserName] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<Set<string>>(new Set());
   const [selectedArtists, setSelectedArtists] = useState<Set<string>>(new Set());
 
@@ -76,6 +80,17 @@ export function OnboardingScreen({ navigation }: any) {
           artists: Array.from(selectedArtists),
         }),
       );
+      // Save user name
+      if (userName.trim()) {
+        useSettingsStore.getState().setUserName(userName.trim());
+      }
+      // Request notification permission on Android 13+
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        try {
+          const { PermissionsAndroid } = require('react-native');
+          await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS');
+        } catch {}
+      }
     } catch {}
     navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
   };
@@ -91,10 +106,61 @@ export function OnboardingScreen({ navigation }: any) {
     <View style={styles.container}>
       <LinearGradient colors={['#0a0a0a', '#0e0e0e']} style={StyleSheet.absoluteFill} />
 
-      {step === 'genres' ? (
+      {step === 'name' ? (
         <>
           <View style={styles.header}>
-            <Text style={styles.stepTag}>Step 1 of 2</Text>
+            <Text style={styles.stepTag}>Step 1 of 3</Text>
+            <Text style={styles.title}>What should we call you?</Text>
+            <Text style={styles.subtitle}>This helps us personalize your experience</Text>
+          </View>
+
+          <View style={styles.nameContainer}>
+            <View style={styles.nameIconContainer}>
+              <MaterialIcon name="person" size={48} color={colors.primary} />
+            </View>
+            <TextInput
+              style={styles.nameInput}
+              placeholder="Enter your name"
+              placeholderTextColor={colors.outlineVariant}
+              value={userName}
+              onChangeText={setUserName}
+              maxLength={25}
+              autoFocus
+              returnKeyType="next"
+              onSubmitEditing={() => {
+                if (userName.trim().length >= 2) setStep('genres');
+              }}
+            />
+            <Text style={styles.nameHint}>
+              {userName.trim().length > 0
+                ? `Hey ${userName.trim()}! 👋`
+                : 'Minimum 2 characters'}
+            </Text>
+          </View>
+
+          <View style={styles.footer}>
+            <TouchableOpacity onPress={handleSkip}>
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.nextBtn, userName.trim().length < 2 && styles.nextBtnDisabled]}
+              onPress={() => setStep('genres')}
+              disabled={userName.trim().length < 2}
+            >
+              <Text style={[styles.nextBtnText, userName.trim().length < 2 && { opacity: 0.5 }]}>
+                Next
+              </Text>
+              <MaterialIcon name="arrow-forward" size={20} color={userName.trim().length < 2 ? colors.onSurfaceVariant : colors.background} />
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : step === 'genres' ? (
+        <>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setStep('name')} style={{ marginBottom: 8 }}>
+              <MaterialIcon name="arrow-back" size={24} color={colors.onSurfaceVariant} />
+            </TouchableOpacity>
+            <Text style={styles.stepTag}>Step 2 of 3</Text>
             <Text style={styles.title}>What do you like to listen to?</Text>
             <Text style={styles.subtitle}>Pick at least 3 genres to get personalized recommendations</Text>
           </View>
@@ -155,7 +221,7 @@ export function OnboardingScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => setStep('genres')} style={{ marginBottom: 8 }}>
               <MaterialIcon name="arrow-back" size={24} color={colors.onSurfaceVariant} />
             </TouchableOpacity>
-            <Text style={styles.stepTag}>Step 2 of 2</Text>
+            <Text style={styles.stepTag}>Step 3 of 3</Text>
             <Text style={styles.title}>Pick your favorite artists</Text>
             <Text style={styles.subtitle}>Select at least 3 artists you love</Text>
           </View>
@@ -239,6 +305,42 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.bodyMd,
     color: colors.onSurfaceVariant,
+  },
+  nameContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 40,
+    alignItems: 'center',
+  },
+  nameIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(114, 254, 143, 0.1)',
+    borderWidth: 2,
+    borderColor: 'rgba(114, 254, 143, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  nameInput: {
+    width: '100%',
+    backgroundColor: colors.surfaceContainerHighest,
+    borderRadius: radii.lg,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    color: colors.onSurface,
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(114, 254, 143, 0.2)',
+  },
+  nameHint: {
+    ...typography.bodyMd,
+    color: colors.primary,
+    marginTop: 16,
+    fontWeight: '600',
   },
   gridContainer: {
     flexDirection: 'row',

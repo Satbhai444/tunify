@@ -148,7 +148,7 @@ export function SplashScreen({ navigation }: any) {
     const navTimer = setTimeout(async () => {
       try {
         const onboardingDone = await AsyncStorage.getItem('tunify_onboarding_done');
-        const target = onboardingDone === 'true' ? 'Main' : 'Onboarding';
+        const target = onboardingDone === 'true' ? 'Main' : 'Welcome';
         navigation.reset({ index: 0, routes: [{ name: target }] });
       } catch (e) {
         console.error('Navigation error:', e);

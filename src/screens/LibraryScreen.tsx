@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Alert } from
 import { colors, typography, spacing, radii } from '../theme';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
+import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
 import { useLibraryStore, usePlayerStore } from '../stores';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -233,6 +234,7 @@ export function LibraryScreen({ navigation }: any) {
       >
         <MaterialIcon name="add" size={28} color={colors.onPrimaryContainer} />
       </TouchableOpacity>
+      <FirstTimeTooltip screen="library" />
     </View>
   );
 }

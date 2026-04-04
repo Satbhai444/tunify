@@ -4,9 +4,11 @@ import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { BottomSheetMenu } from '../components/BottomSheet';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
+import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
 import { getTrending, getPlaylistTracks, getCuratedSection, getDeezerChart, getNewReleases, getTopPlaylists, getTopArtists, getTopAlbums } from '../api';
 import { usePlayerStore, useLibraryStore } from '../stores';
 import { useSettingsStore } from '../stores/settingsStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Track, Album, Artist, Playlist } from '../types';
 
 // ─── Types ───
@@ -119,6 +121,7 @@ export function HomeScreen({ navigation }: any) {
   const downloads = useLibraryStore((s) => s.downloads);
   const toggleLike = useLibraryStore((s) => s.toggleLike);
   const isLiked = useLibraryStore((s) => s.isLiked);
+  const userName = useSettingsStore((s) => s.userName);
   const [trackMenu, setTrackMenu] = useState<Track | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [madeForYou, setMadeForYou] = useState<Track[]>([]);
@@ -244,28 +247,46 @@ export function HomeScreen({ navigation }: any) {
     generateRecommendations();
   }, [likedSongs.length, recentlyPlayed.length]);
 
-  // Quick Picks personalization based on listening history
+  // Quick Picks personalization based on listening history or onboarding preferences
   useEffect(() => {
     async function generateQuickPicks() {
       try {
         const history = [...recentlyPlayed, ...likedSongs];
-        if (history.length === 0) return; // fallback to heroSection in render
 
-        const artistCounts = new Map<string, number>();
-        history.forEach((t) => {
-          artistCounts.set(t.artist, (artistCounts.get(t.artist) || 0) + 1);
-        });
-        const topArtists = [...artistCounts.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([name]) => name);
+        if (history.length > 0) {
+          // Use listening history for returning users
+          const artistCounts = new Map<string, number>();
+          history.forEach((t) => {
+            artistCounts.set(t.artist, (artistCounts.get(t.artist) || 0) + 1);
+          });
+          const topArtists = [...artistCounts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([name]) => name);
 
-        if (topArtists.length === 0) return;
-        const query = topArtists.join(' ') + ' popular songs';
-        const tracks = await getCuratedSection(query, 12);
-        const existingIds = new Set(history.map((t) => t.id));
-        const fresh = tracks.filter((t) => !existingIds.has(t.id));
-        setQuickPicks(fresh.length >= 6 ? fresh.slice(0, 6) : tracks.slice(0, 6));
+          if (topArtists.length > 0) {
+            const query = topArtists.join(' ') + ' popular songs';
+            const tracks = await getCuratedSection(query, 12);
+            const existingIds = new Set(history.map((t) => t.id));
+            const fresh = tracks.filter((t) => !existingIds.has(t.id));
+            setQuickPicks(fresh.length >= 6 ? fresh.slice(0, 6) : tracks.slice(0, 6));
+            return;
+          }
+        }
+
+        // Fallback: use onboarding preferences for new users
+        const prefsRaw = await AsyncStorage.getItem('tunify_preferences');
+        if (prefsRaw) {
+          const prefs = JSON.parse(prefsRaw);
+          const parts: string[] = [];
+          if (prefs.artists?.length) parts.push(...prefs.artists.slice(0, 3));
+          else if (prefs.genres?.length) parts.push(...prefs.genres.slice(0, 3));
+          if (parts.length > 0) {
+            const query = parts.join(' ') + ' popular songs';
+            const tracks = await getCuratedSection(query, 12);
+            setQuickPicks(tracks.slice(0, 6));
+          }
+        }
       } catch {}
     }
     generateQuickPicks();
@@ -334,7 +355,9 @@ export function HomeScreen({ navigation }: any) {
       >
         {/* Header */}
         <View style={styles.topBar}>
-          <Text style={styles.greeting}>{greeting}</Text>
+          <View>
+            <Text style={styles.greeting}>{greeting}{userName && userName !== 'Tunify User' ? `, ${userName.split(' ')[0]}` : ''}</Text>
+          </View>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
             <MaterialIcon name="settings" size={24} color={colors.onSurfaceVariant} />
           </TouchableOpacity>
@@ -738,6 +761,7 @@ export function HomeScreen({ navigation }: any) {
           ]}
         />
       )}
+      <FirstTimeTooltip screen="home" />
     </View>
   );
 }

@@ -8,7 +8,6 @@ import { MaterialIcon } from '../components/MaterialIcon';
 import { MiniPlayer } from '../components/MiniPlayer';
 import {
   SplashScreen,
-  AuthScreen,
   HomeScreen,
   SearchScreen,
   PlayerScreen,
@@ -24,6 +23,7 @@ import {
   DiscoverScreen,
   MoodScreen,
   CreditsScreen,
+  WelcomeScreen,
 } from '../screens';
 import { usePlayerStore } from '../stores';
 
@@ -109,7 +109,7 @@ export function AppNavigator() {
         }}
       >
         <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Auth" component={AuthScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Main" component={HomeTabs} />
         <Stack.Screen

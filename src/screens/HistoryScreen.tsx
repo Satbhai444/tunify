@@ -77,9 +77,15 @@ export function HistoryScreen({ navigation }: any) {
 
       {recentlyPlayed.length === 0 ? (
         <View style={styles.empty}>
-          <MaterialIcon name="history" size={64} color={colors.outlineVariant} />
-          <Text style={styles.emptyText}>No listening history yet</Text>
-          <Text style={styles.emptyHint}>Songs you play will appear here</Text>
+          <View style={styles.emptyIconWrap}>
+            <MaterialIcon name="history" size={72} color={colors.primary} />
+          </View>
+          <Text style={styles.emptyTitle}>No listening history yet</Text>
+          <Text style={styles.emptyHint}>Start playing songs and they'll show up here so you can easily find them again</Text>
+          <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('Main')}>
+            <MaterialIcon name="play-arrow" size={20} color={colors.onPrimary} />
+            <Text style={styles.emptyBtnText}>Start Listening</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <>
@@ -184,14 +190,43 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    paddingHorizontal: 40,
+    gap: 16,
   },
-  emptyText: {
-    ...typography.titleMd,
-    color: colors.onSurfaceVariant,
+  emptyIconWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    ...typography.titleLg,
+    color: colors.onSurface,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   emptyHint: {
-    ...typography.bodySm,
-    color: colors.outlineVariant,
+    ...typography.bodyMd,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+    marginTop: 8,
+  },
+  emptyBtnText: {
+    ...typography.titleSm,
+    color: colors.onPrimary,
+    fontWeight: '700',
   },
 });

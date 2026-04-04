@@ -141,7 +141,11 @@ export function SettingsScreen({ navigation }: any) {
       {
         text: 'Log Out',
         style: 'destructive',
-        onPress: () => navigation.replace('Auth'),
+        onPress: async () => {
+          await AsyncStorage.removeItem('tunify_onboarding_done');
+          await AsyncStorage.removeItem('tunify_tooltips_seen');
+          navigation.replace('Welcome');
+        },
       },
     ]);
   };

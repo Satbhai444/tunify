@@ -15,3 +15,4 @@ export { BlendScreen } from './BlendScreen';
 export { DiscoverScreen } from './DiscoverScreen';
 export { MoodScreen } from './MoodScreen';
 export { CreditsScreen } from './CreditsScreen';
+export { WelcomeScreen } from './WelcomeScreen';
