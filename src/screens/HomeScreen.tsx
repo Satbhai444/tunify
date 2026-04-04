@@ -1,4 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+// Utility: Shuffle array in-place
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Image, RefreshControl, ActivityIndicator, Share, ToastAndroid, Platform } from 'react-native';
 import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
@@ -126,6 +135,8 @@ export function HomeScreen({ navigation }: any) {
   const [isOffline, setIsOffline] = useState(false);
   const [madeForYou, setMadeForYou] = useState<Track[]>([]);
   const [quickPicks, setQuickPicks] = useState<Track[]>([]);
+  // Expose quick picks generator for refresh
+  const quickPicksRef = useRef<() => Promise<void> | null>(null);
 
   function showToast(msg: string) {
     if (Platform.OS === 'android') {
@@ -259,10 +270,11 @@ export function HomeScreen({ navigation }: any) {
           history.forEach((t) => {
             artistCounts.set(t.artist, (artistCounts.get(t.artist) || 0) + 1);
           });
-          const topArtists = [...artistCounts.entries()]
+          let topArtists = [...artistCounts.entries()]
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
             .map(([name]) => name);
+          // Shuffle and pick 3
+          topArtists = shuffleArray(topArtists).slice(0, 3);
 
           if (topArtists.length > 0) {
             const query = topArtists.join(' ') + ' popular songs';
@@ -278,9 +290,9 @@ export function HomeScreen({ navigation }: any) {
         const prefsRaw = await AsyncStorage.getItem('tunify_preferences');
         if (prefsRaw) {
           const prefs = JSON.parse(prefsRaw);
-          const parts: string[] = [];
-          if (prefs.artists?.length) parts.push(...prefs.artists.slice(0, 3));
-          else if (prefs.genres?.length) parts.push(...prefs.genres.slice(0, 3));
+          let parts: string[] = [];
+          if (prefs.artists?.length) parts = shuffleArray(prefs.artists as string[]).slice(0, 3);
+          else if (prefs.genres?.length) parts = shuffleArray(prefs.genres as string[]).slice(0, 3);
           if (parts.length > 0) {
             const query = parts.join(' ') + ' popular songs';
             const tracks = await getCuratedSection(query, 12);
@@ -289,6 +301,7 @@ export function HomeScreen({ navigation }: any) {
         }
       } catch {}
     }
+    quickPicksRef.current = generateQuickPicks;
     generateQuickPicks();
   }, [likedSongs.length, recentlyPlayed.length]);
 
@@ -296,6 +309,8 @@ export function HomeScreen({ navigation }: any) {
     setRefreshing(true);
     checkConnectivity();
     await fetchData();
+    // Also refresh quick picks for new suggestions
+    if (quickPicksRef.current) await quickPicksRef.current();
     setRefreshing(false);
   };
 
