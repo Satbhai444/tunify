@@ -44,6 +44,8 @@ export function setupNativeLockScreen(player: AudioPlayer, track: Track) {
       {
         showSeekForward: true,
         showSeekBackward: true,
+        showNextTrack: true,
+        showPreviousTrack: true,
       },
     );
   } catch (e) {

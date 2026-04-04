@@ -122,6 +122,7 @@ export function HomeScreen({ navigation }: any) {
   const [trackMenu, setTrackMenu] = useState<Track | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [madeForYou, setMadeForYou] = useState<Track[]>([]);
+  const [quickPicks, setQuickPicks] = useState<Track[]>([]);
 
   function showToast(msg: string) {
     if (Platform.OS === 'android') {
@@ -198,17 +199,25 @@ export function HomeScreen({ navigation }: any) {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
+  const checkConnectivity = useCallback(() => {
     fetch('https://jiosavan-api2.vercel.app/api/search/songs?query=test&limit=1', { method: 'HEAD' })
       .then(() => setIsOffline(false))
       .catch(() => setIsOffline(true));
+  }, []);
+
+  useEffect(() => {
+    checkConnectivity();
+    // Re-check connectivity every 10 seconds
+    const interval = setInterval(checkConnectivity, 10000);
 
     fetchData();
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good Morning');
     else if (hour < 17) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
-  }, [fetchData]);
+
+    return () => clearInterval(interval);
+  }, [fetchData, checkConnectivity]);
 
   // Made for You personalization
   useEffect(() => {
@@ -235,8 +244,36 @@ export function HomeScreen({ navigation }: any) {
     generateRecommendations();
   }, [likedSongs.length, recentlyPlayed.length]);
 
+  // Quick Picks personalization based on listening history
+  useEffect(() => {
+    async function generateQuickPicks() {
+      try {
+        const history = [...recentlyPlayed, ...likedSongs];
+        if (history.length === 0) return; // fallback to heroSection in render
+
+        const artistCounts = new Map<string, number>();
+        history.forEach((t) => {
+          artistCounts.set(t.artist, (artistCounts.get(t.artist) || 0) + 1);
+        });
+        const topArtists = [...artistCounts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name]) => name);
+
+        if (topArtists.length === 0) return;
+        const query = topArtists.join(' ') + ' popular songs';
+        const tracks = await getCuratedSection(query, 12);
+        const existingIds = new Set(history.map((t) => t.id));
+        const fresh = tracks.filter((t) => !existingIds.has(t.id));
+        setQuickPicks(fresh.length >= 6 ? fresh.slice(0, 6) : tracks.slice(0, 6));
+      } catch {}
+    }
+    generateQuickPicks();
+  }, [likedSongs.length, recentlyPlayed.length]);
+
   const onRefresh = async () => {
     setRefreshing(true);
+    checkConnectivity();
     await fetchData();
     setRefreshing(false);
   };
@@ -355,25 +392,30 @@ export function HomeScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* ═══════ QUICK PICKS GRID ═══════ */}
-        {heroSection && heroSection.tracks.length >= 6 && (
-          <View style={styles.section}>
-            <SectionHeader title="Quick Picks" emoji="⚡" />
-            <View style={styles.quickPicksGrid}>
-              {heroSection.tracks.slice(0, 6).map((track) => (
-                <TouchableOpacity
-                  key={track.id}
-                  style={styles.quickPickItem}
-                  onPress={() => handleTrackPress(track, heroSection.tracks)}
-                  activeOpacity={0.7}
-                >
-                  <Image source={{ uri: track.artwork }} style={styles.quickPickImage} />
-                  <Text style={styles.quickPickTitle} numberOfLines={1}>{track.title}</Text>
-                </TouchableOpacity>
-              ))}
+        {/* ═══════ QUICK PICKS GRID (Personalized) ═══════ */}
+        {(() => {
+          const picks = quickPicks.length >= 6 ? quickPicks : (heroSection?.tracks?.slice(0, 6) || []);
+          const pickQueue = quickPicks.length >= 6 ? quickPicks : (heroSection?.tracks || []);
+          if (picks.length < 6) return null;
+          return (
+            <View style={styles.section}>
+              <SectionHeader title="Quick Picks" emoji="⚡" />
+              <View style={styles.quickPicksGrid}>
+                {picks.map((track) => (
+                  <TouchableOpacity
+                    key={track.id}
+                    style={styles.quickPickItem}
+                    onPress={() => handleTrackPress(track, pickQueue)}
+                    activeOpacity={0.7}
+                  >
+                    <Image source={{ uri: track.artwork }} style={styles.quickPickImage} />
+                    <Text style={styles.quickPickTitle} numberOfLines={1}>{track.title}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* ═══════ MADE FOR YOU ═══════ */}
         {madeForYou.length > 0 && !isOffline && (

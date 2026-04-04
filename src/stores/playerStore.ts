@@ -308,6 +308,15 @@ async function loadAndPlay(track: Track) {
       if (status.didJustFinish && !isTransitioning) {
         handleTrackEnd();
       }
+      // Handle media control actions from notification (next/previous track)
+      if (status.mediaAction === 'nextTrack') {
+        usePlayerStore.getState().skipNext();
+        return;
+      }
+      if (status.mediaAction === 'previousTrack') {
+        usePlayerStore.getState().skipPrevious();
+        return;
+      }
       // Sync playing state from native player (lock screen play/pause)
       const store = usePlayerStore.getState();
       if (status.playing !== undefined && status.playing !== store.isPlaying && !isTransitioning) {

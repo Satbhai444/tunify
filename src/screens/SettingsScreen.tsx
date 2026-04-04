@@ -11,8 +11,10 @@ import {
   Modal,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Updates from 'expo-updates';
 import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { useSettingsStore, AudioQuality } from '../stores/settingsStore';
@@ -50,6 +52,8 @@ export function SettingsScreen({ navigation }: any) {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [editName, setEditName] = useState(settings.userName);
   const [editEmail, setEditEmail] = useState(settings.userEmail);
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string>('');
 
   // Calculate storage used by downloads
   const storageUsed = React.useMemo(() => {
@@ -353,6 +357,56 @@ export function SettingsScreen({ navigation }: any) {
             <MaterialIcon name="cached" size={22} color={colors.onSurfaceVariant} />
             <Text style={styles.settingLabel}>Clear Cache</Text>
             <MaterialIcon name="chevron-right" size={22} color={colors.onSurfaceVariant} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Updates Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Updates</Text>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={async () => {
+              if (updateChecking) return;
+              setUpdateChecking(true);
+              setUpdateStatus('Checking...');
+              try {
+                const update = await Updates.checkForUpdateAsync();
+                if (update.isAvailable) {
+                  setUpdateStatus('Downloading update...');
+                  await Updates.fetchUpdateAsync();
+                  Alert.alert(
+                    'Update Ready',
+                    'A new update has been downloaded. Restart the app to apply it.',
+                    [
+                      { text: 'Later', style: 'cancel' },
+                      { text: 'Restart Now', onPress: () => Updates.reloadAsync() },
+                    ],
+                  );
+                  setUpdateStatus('Update ready!');
+                } else {
+                  setUpdateStatus('You\'re up to date!');
+                  Alert.alert('No Updates', 'You\'re already on the latest version.');
+                }
+              } catch (e: any) {
+                setUpdateStatus('');
+                Alert.alert('Update Check', 'Could not check for updates. Make sure you\'re online.');
+              } finally {
+                setUpdateChecking(false);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            {updateChecking ? (
+              <ActivityIndicator size={22} color={colors.primary} />
+            ) : (
+              <MaterialIcon name="system-update" size={22} color={colors.primary} />
+            )}
+            <Text style={[styles.settingLabel, { color: colors.primary }]}>Check for Updates</Text>
+            {updateStatus ? (
+              <Text style={styles.settingValue}>{updateStatus}</Text>
+            ) : (
+              <MaterialIcon name="chevron-right" size={22} color={colors.primary} />
+            )}
           </TouchableOpacity>
         </View>
 
