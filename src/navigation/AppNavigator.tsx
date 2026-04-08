@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Linking, Alert } from 'react-native';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BlurView } from 'expo-blur';
 import { colors } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { MiniPlayer } from '../components/MiniPlayer';
@@ -28,6 +29,8 @@ import {
   TermsScreen,
 } from '../screens';
 import { usePlayerStore } from '../stores';
+import { parseDeepLink } from '../utils/shareUtils';
+import { getSongDetails } from '../api';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -35,8 +38,6 @@ const Tab = createBottomTabNavigator();
 function TabBarIcon({ name, color, size }: { name: string; color: string; size: number }) {
   return <MaterialIcon name={name as any} size={size} color={color} />;
 }
-
-import { BlurView } from 'expo-blur';
 
 function HomeTabs() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -57,7 +58,7 @@ function HomeTabs() {
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             elevation: 0,
-            paddingBottom: 0, // Reset default padding
+            paddingBottom: 0,
           },
           tabBarBackground: () => (
             <BlurView
@@ -74,7 +75,7 @@ function HomeTabs() {
           ),
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.onSurfaceVariant,
-          tabBarShowLabel: false, // Cleaner look like the reference
+          tabBarShowLabel: false,
         }}
       >
         <Tab.Screen
@@ -101,7 +102,7 @@ function HomeTabs() {
                 backgroundColor: focused ? colors.primary : 'rgba(255, 255, 255, 0.05)',
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginBottom: focused ? 10 : 0, // Lifted effect
+                marginBottom: focused ? 10 : 0,
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.1)'
               }}>
@@ -124,7 +125,6 @@ function HomeTabs() {
         />
       </Tab.Navigator>
 
-      {/* MiniPlayer overlay - shown above tab bar when track is playing */}
       {currentTrack && (
         <View style={{ position: 'absolute', bottom: 105, left: 10, right: 10 }}>
            <MiniPlayer onPress={() => nav.navigate('Player')} />
@@ -134,9 +134,55 @@ function HomeTabs() {
   );
 }
 
+// Deep linking config
+const linking = {
+  prefixes: ['tunify://'],
+};
+
 export function AppNavigator() {
+  const navigationRef = React.useRef<any>(null);
+
+  // Handle deep links (tunify://song/xxx)
+  React.useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const parsed = parseDeepLink(event.url);
+      if (!parsed) return;
+
+      if (parsed.type === 'song') {
+        try {
+          const songData = await getSongDetails(parsed.id);
+          if (songData) {
+            usePlayerStore.getState().play(songData, [songData]);
+            // Small delay to let navigation mount
+            setTimeout(() => {
+              navigationRef.current?.navigate('Player');
+            }, 300);
+          }
+        } catch {
+          Alert.alert('Error', 'Could not load this song.');
+        }
+      } else if (parsed.type === 'playlist') {
+        setTimeout(() => {
+          navigationRef.current?.navigate('PlaylistDetail', {
+            playlistId: parsed.id,
+            title: 'Shared Playlist',
+          });
+        }, 300);
+      }
+    };
+
+    // Handle link that opened the app
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+
+    // Handle link while app is open
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    return () => sub.remove();
+  }, []);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

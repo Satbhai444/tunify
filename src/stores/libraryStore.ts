@@ -26,6 +26,7 @@ export interface LibraryState {
 
   // Playlists
   createPlaylist: (title: string, description?: string) => Promise<UserPlaylist>;
+  renamePlaylist: (id: string, newTitle: string) => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
   addToPlaylist: (playlistId: string, track: Track) => Promise<void>;
   removeFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
@@ -103,6 +104,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ playlists: updated });
     await AsyncStorage.setItem(PLAYLISTS_KEY, JSON.stringify(updated));
     return playlist;
+  },
+
+  renamePlaylist: async (id, newTitle) => {
+    const updated = get().playlists.map((p) =>
+      p.id === id ? { ...p, title: newTitle, updatedAt: Date.now() } : p
+    );
+    set({ playlists: updated });
+    await AsyncStorage.setItem(PLAYLISTS_KEY, JSON.stringify(updated));
   },
 
   deletePlaylist: async (id) => {
