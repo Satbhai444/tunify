@@ -196,7 +196,8 @@ function startCrossfade(fadeTime: number) {
       preloadedTrackId = null;
     } else {
       cleanupPreloadedPlayer();
-      newPlayer = createPlayer(nextTrack.url);
+      const playUrl = (nextTrack as any).localPath || nextTrack.url;
+      newPlayer = createPlayer(playUrl);
     }
 
     player = newPlayer;
@@ -269,7 +270,8 @@ function preloadNextTrack() {
   if (!nextTrack || !nextTrack.url || nextTrack.id === preloadedTrackId) return;
   cleanupPreloadedPlayer();
   try {
-    preloadedPlayer = createPlayer(nextTrack.url);
+    const playUrl = (nextTrack as any).localPath || nextTrack.url;
+    preloadedPlayer = createPlayer(playUrl);
     preloadedTrackId = nextTrack.id;
   } catch {}
 }
@@ -296,7 +298,8 @@ async function loadAndPlay(track: Track) {
       preloadedTrackId = null;
     } else {
       cleanupPreloadedPlayer();
-      newPlayer = createPlayer(track.url);
+      const playUrl = (track as any).localPath || track.url;
+      newPlayer = createPlayer(playUrl);
     }
 
     // Cleanup old player AFTER creating new one (no gap)

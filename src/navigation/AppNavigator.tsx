@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -24,6 +24,8 @@ import {
   MoodScreen,
   CreditsScreen,
   WelcomeScreen,
+  PrivacyPolicyScreen,
+  TermsScreen,
 } from '../screens';
 import { usePlayerStore } from '../stores';
 
@@ -33,6 +35,8 @@ const Tab = createBottomTabNavigator();
 function TabBarIcon({ name, color, size }: { name: string; color: string; size: number }) {
   return <MaterialIcon name={name as any} size={size} color={color} />;
 }
+
+import { BlurView } from 'expo-blur';
 
 function HomeTabs() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -44,28 +48,44 @@ function HomeTabs() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: 'rgba(14, 14, 14, 0.95)',
-            borderTopColor: colors.surfaceContainerHighest,
-            borderTopWidth: 0.5,
-            height: 70,
-            paddingBottom: 10,
-            paddingTop: 8,
+            position: 'absolute',
+            bottom: 30,
+            left: 20,
+            right: 20,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            elevation: 0,
+            paddingBottom: 0, // Reset default padding
           },
+          tabBarBackground: () => (
+            <BlurView
+              intensity={80}
+              tint="dark"
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 32,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            />
+          ),
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.onSurfaceVariant,
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '600',
-            letterSpacing: 0.5,
-          },
+          tabBarShowLabel: false, // Cleaner look like the reference
         }}
       >
         <Tab.Screen
           name="Home"
           component={HomeScreen}
           options={{
-            tabBarIcon: ({ color, size }) => (
-              <TabBarIcon name="home-filled" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{ alignItems: 'center' }}>
+                <TabBarIcon name="home-filled" color={color} size={28} />
+                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
+              </View>
             ),
           }}
         />
@@ -73,8 +93,20 @@ function HomeTabs() {
           name="Search"
           component={SearchScreen}
           options={{
-            tabBarIcon: ({ color, size }) => (
-              <TabBarIcon name="search" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{ 
+                width: 50, 
+                height: 50, 
+                borderRadius: 25, 
+                backgroundColor: focused ? colors.primary : 'rgba(255, 255, 255, 0.05)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: focused ? 10 : 0, // Lifted effect
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.1)'
+              }}>
+                <TabBarIcon name="search" color={focused ? '#FFF' : color} size={28} />
+              </View>
             ),
           }}
         />
@@ -82,9 +114,11 @@ function HomeTabs() {
           name="Library"
           component={LibraryScreen}
           options={{
-            tabBarLabel: 'Your Library',
-            tabBarIcon: ({ color, size }) => (
-              <TabBarIcon name="library-music" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{ alignItems: 'center' }}>
+                <TabBarIcon name="library-music" color={color} size={28} />
+                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
+              </View>
             ),
           }}
         />
@@ -92,7 +126,9 @@ function HomeTabs() {
 
       {/* MiniPlayer overlay - shown above tab bar when track is playing */}
       {currentTrack && (
-        <MiniPlayer onPress={() => nav.navigate('Player')} />
+        <View style={{ position: 'absolute', bottom: 105, left: 10, right: 10 }}>
+           <MiniPlayer onPress={() => nav.navigate('Player')} />
+        </View>
       )}
     </View>
   );
@@ -127,6 +163,8 @@ export function AppNavigator() {
         <Stack.Screen name="Discover" component={DiscoverScreen} />
         <Stack.Screen name="Mood" component={MoodScreen} />
         <Stack.Screen name="Credits" component={CreditsScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+        <Stack.Screen name="Terms" component={TermsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

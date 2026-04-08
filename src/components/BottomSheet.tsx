@@ -9,7 +9,9 @@ import {
   ScrollView,
   TextInput,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from './MaterialIcon';
@@ -46,83 +48,85 @@ export function BottomSheetMenu({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          {/* Handle bar */}
-          <View style={styles.handleBar} />
+        <View style={styles.sheetContainer}>
+          <BlurView intensity={40} tint="dark" style={styles.glassSheet}>
+            {/* Handle bar */}
+            <View style={styles.handleBar} />
 
-          {/* Header with track info */}
-          {(title || artwork) && (
-            <View style={styles.sheetHeader}>
-              {artwork && (
-                <Image source={{ uri: artwork }} style={styles.sheetArt} contentFit="cover" />
-              )}
-              <View style={styles.sheetHeaderText}>
-                {title && (
-                  <Text style={styles.sheetTitle} numberOfLines={1}>
-                    {title}
-                  </Text>
+            {/* Header with track info */}
+            {(title || artwork) && (
+              <View style={styles.sheetHeader}>
+                {artwork && (
+                  <Image source={{ uri: artwork }} style={styles.sheetArt} contentFit="cover" />
                 )}
-                {subtitle && (
-                  <Text style={styles.sheetSubtitle} numberOfLines={1}>
-                    {subtitle}
-                  </Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          <View style={styles.divider} />
-
-          {/* Options */}
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            style={{ maxHeight: SCREEN_HEIGHT * 0.5 }}
-          >
-            {options.map((opt, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.optionRow}
-                onPress={() => {
-                  opt.onPress();
-                  onClose();
-                }}
-                activeOpacity={0.6}
-              >
-                <View
-                  style={[
-                    styles.optionIcon,
-                    opt.destructive && { backgroundColor: 'rgba(255,113,81,0.12)' },
-                  ]}
-                >
-                  <MaterialIcon
-                    name={opt.icon as any}
-                    size={22}
-                    color={
-                      opt.destructive
-                        ? colors.error
-                        : opt.color || colors.primary
-                    }
-                  />
-                </View>
-                <View style={styles.optionTextCol}>
-                  <Text
-                    style={[
-                      styles.optionLabel,
-                      opt.destructive && { color: colors.error },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                  {opt.sublabel && (
-                    <Text style={styles.optionSublabel}>{opt.sublabel}</Text>
+                <View style={styles.sheetHeaderText}>
+                  {title && (
+                    <Text style={styles.sheetTitle} numberOfLines={1}>
+                      {title}
+                    </Text>
+                  )}
+                  {subtitle && (
+                    <Text style={styles.sheetSubtitle} numberOfLines={1}>
+                      {subtitle}
+                    </Text>
                   )}
                 </View>
-                <MaterialIcon name="chevron-right" size={18} color={colors.outline} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Pressable>
+              </View>
+            )}
+
+            <View style={styles.divider} />
+
+            {/* Options */}
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: SCREEN_HEIGHT * 0.5 }}
+            >
+              {options.map((opt, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={styles.optionRow}
+                  onPress={() => {
+                    opt.onPress();
+                    onClose();
+                  }}
+                  activeOpacity={0.6}
+                >
+                  <View
+                    style={[
+                      styles.optionIcon,
+                      opt.destructive && { backgroundColor: 'rgba(255,113,81,0.12)' },
+                    ]}
+                  >
+                    <MaterialIcon
+                      name={opt.icon as any}
+                      size={20}
+                      color={
+                        opt.destructive
+                          ? colors.error
+                          : opt.color || '#FFF'
+                      }
+                    />
+                  </View>
+                  <View style={styles.optionTextCol}>
+                    <Text
+                      style={[
+                        styles.optionLabel,
+                        opt.destructive && { color: colors.error },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                    {opt.sublabel && (
+                      <Text style={styles.optionSublabel}>{opt.sublabel}</Text>
+                    )}
+                  </View>
+                  <MaterialIcon name="chevron-right" size={18} color="#5C5C8A" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </BlurView>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -160,92 +164,90 @@ export function PlaylistPicker({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handleBar} />
+        <View style={styles.sheetContainer}>
+          <BlurView intensity={40} tint="dark" style={styles.glassSheet}>
+            <View style={styles.handleBar} />
+            <Text style={styles.pickerTitle}>Add to Playlist</Text>
 
-          <Text style={styles.pickerTitle}>Add to Playlist</Text>
-
-          {/* Create New */}
-          {!creating ? (
-            <TouchableOpacity
-              style={styles.createRow}
-              onPress={() => setCreating(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.createIcon}>
-                <MaterialIcon name="add" size={24} color={colors.primary} />
-              </View>
-              <Text style={styles.createText}>Create New Playlist</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.createInputRow}>
-              <TextInput
-                style={styles.createInput}
-                placeholder="Playlist name..."
-                placeholderTextColor={colors.outline}
-                value={newName}
-                onChangeText={setNewName}
-                autoFocus
-                onSubmitEditing={handleCreate}
-                returnKeyType="done"
-              />
-              <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-                <MaterialIcon name="check" size={22} color={colors.onPrimaryContainer} />
-              </TouchableOpacity>
+            {!creating ? (
               <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setCreating(false);
-                  setNewName('');
-                }}
+                style={styles.createRow}
+                onPress={() => setCreating(true)}
+                activeOpacity={0.7}
               >
-                <MaterialIcon name="close" size={22} color={colors.onSurfaceVariant} />
+                <View style={styles.createIcon}>
+                  <MaterialIcon name="add" size={24} color={colors.primary} />
+                </View>
+                <Text style={styles.createText}>Create New Playlist</Text>
               </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.divider} />
-
-          {/* Existing playlists */}
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            style={{ maxHeight: SCREEN_HEIGHT * 0.4 }}
-          >
-            {playlists.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialIcon name="queue-music" size={40} color={colors.outline} />
-                <Text style={styles.emptyText}>No playlists yet</Text>
-                <Text style={styles.emptyHint}>Create one above to get started</Text>
-              </View>
             ) : (
-              playlists.map((p) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={styles.playlistRow}
-                  onPress={() => {
-                    onSelect(p.id);
-                    onClose();
-                  }}
-                  activeOpacity={0.6}
-                >
-                  <View style={styles.playlistIcon}>
-                    <MaterialIcon name="queue-music" size={22} color={colors.primary} />
-                  </View>
-                  <View style={styles.playlistInfo}>
-                    <Text style={styles.playlistName} numberOfLines={1}>
-                      {p.title}
-                    </Text>
-                    <Text style={styles.playlistCount}>
-                      {p.trackCount} {p.trackCount === 1 ? 'song' : 'songs'}
-                    </Text>
-                  </View>
-                  <MaterialIcon name="add-circle-outline" size={22} color={colors.primary} />
+              <View style={styles.createInputRow}>
+                <TextInput
+                  style={styles.createInput}
+                  placeholder="Playlist name..."
+                  placeholderTextColor="#A5A5C7"
+                  value={newName}
+                  onChangeText={setNewName}
+                  autoFocus
+                  onSubmitEditing={handleCreate}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
+                  <MaterialIcon name="check" size={22} color="#FFF" />
                 </TouchableOpacity>
-              ))
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    setCreating(false);
+                    setNewName('');
+                  }}
+                >
+                  <MaterialIcon name="close" size={22} color="#FFF" />
+                </TouchableOpacity>
+              </View>
             )}
-          </ScrollView>
-        </Pressable>
+
+            <View style={styles.divider} />
+
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: SCREEN_HEIGHT * 0.4 }}
+            >
+              {playlists.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcon name="queue-music" size={40} color="#5C5C8A" />
+                  <Text style={styles.emptyText}>No playlists yet</Text>
+                </View>
+              ) : (
+                playlists.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.playlistRow}
+                    onPress={() => {
+                      onSelect(p.id);
+                      onClose();
+                    }}
+                    activeOpacity={0.6}
+                  >
+                    <View style={styles.playlistIcon}>
+                      <MaterialIcon name="queue-music" size={22} color={colors.primary} />
+                    </View>
+                    <View style={styles.playlistInfo}>
+                      <Text style={styles.playlistName} numberOfLines={1}>
+                        {p.title}
+                      </Text>
+                      <Text style={styles.playlistCount}>
+                        {p.trackCount} {p.trackCount === 1 ? 'song' : 'songs'}
+                      </Text>
+                    </View>
+                    <MaterialIcon name="add-circle-outline" size={22} color={colors.primary} />
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </BlurView>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -264,67 +266,68 @@ export function QueueViewer({ visible, onClose, queue, currentTrackId, onPlayTra
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={[styles.sheet, { maxHeight: SCREEN_HEIGHT * 0.7 }]} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handleBar} />
-          <View style={styles.queueHeader}>
-            <Text style={styles.pickerTitle}>Queue</Text>
-            <Text style={styles.queueCount}>{queue.length} songs</Text>
-          </View>
-          <View style={styles.divider} />
-          <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-            {queue.map((track, i) => {
-              const isActive = track.id === currentTrackId;
-              return (
-                <TouchableOpacity
-                  key={`${track.id}_${i}`}
-                  style={[styles.queueRow, isActive && styles.queueRowActive]}
-                  onPress={() => {
-                    if (!isActive && onPlayTrack) {
-                      onPlayTrack(i);
-                      onClose();
-                    }
-                  }}
-                  activeOpacity={isActive ? 1 : 0.6}
-                >
-                  <Text style={[styles.queueIndex, isActive && { color: colors.primary }]}>
-                    {isActive ? '▶' : i + 1}
-                  </Text>
-                  <Image
-                    source={{ uri: track.artwork }}
-                    style={styles.queueArt}
-                    contentFit="cover"
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[styles.queueTitle, isActive && { color: colors.primary }]}
-                      numberOfLines={1}
-                    >
-                      {track.title}
+        <View style={styles.sheetContainer}>
+          <BlurView intensity={40} tint="dark" style={[styles.glassSheet, { maxHeight: SCREEN_HEIGHT * 0.8 }]}>
+            <View style={styles.handleBar} />
+            <View style={styles.queueHeader}>
+              <Text style={styles.pickerTitle}>Queue</Text>
+              <Text style={styles.queueCount}>{queue.length} songs</Text>
+            </View>
+            <View style={styles.divider} />
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+              {queue.map((track, i) => {
+                const isActive = track.id === currentTrackId;
+                return (
+                  <TouchableOpacity
+                    key={`${track.id}_${i}`}
+                    style={[styles.queueRow, isActive && styles.queueRowActive]}
+                    onPress={() => {
+                      if (!isActive && onPlayTrack) {
+                        onPlayTrack(i);
+                        onClose();
+                      }
+                    }}
+                    activeOpacity={isActive ? 1 : 0.6}
+                  >
+                    <Text style={[styles.queueIndex, isActive && { color: colors.primary }]}>
+                      {isActive ? '▶' : i + 1}
                     </Text>
-                    <Text style={styles.queueArtist} numberOfLines={1}>
-                      {track.artist}
-                    </Text>
-                  </View>
-                  {isActive ? (
-                    <MaterialIcon name="equalizer" size={18} color={colors.primary} />
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (onPlayTrack) {
-                          onPlayTrack(i);
-                          onClose();
-                        }
-                      }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <MaterialIcon name="play-circle-outline" size={24} color={colors.primary} />
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Pressable>
+                    <Image
+                      source={{ uri: track.artwork }}
+                      style={styles.queueArt}
+                      contentFit="cover"
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[styles.queueTitle, isActive && { color: colors.primary }]}
+                        numberOfLines={1}
+                      >
+                        {track.title}
+                      </Text>
+                      <Text style={styles.queueArtist} numberOfLines={1}>
+                        {track.artist}
+                      </Text>
+                    </View>
+                    {isActive ? (
+                      <MaterialIcon name="equalizer" size={18} color={colors.primary} />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (onPlayTrack) {
+                            onPlayTrack(i);
+                            onClose();
+                          }
+                        }}
+                      >
+                        <MaterialIcon name="play-circle-outline" size={24} color={colors.primary} />
+                      </TouchableOpacity>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </BlurView>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -334,21 +337,23 @@ export function QueueViewer({ visible, onClose, queue, currentTrackId, onPlayTra
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
-  sheet: {
-    backgroundColor: colors.surfaceContainerHigh,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    paddingBottom: 36,
+  sheetContainer: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     overflow: 'hidden',
+  },
+  glassSheet: {
+    paddingBottom: 40,
+    backgroundColor: 'rgba(22, 22, 46, 0.7)',
   },
   handleBar: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.outline,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 8,
@@ -356,46 +361,46 @@ const styles = StyleSheet.create({
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 12,
-    gap: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    gap: 16,
   },
   sheetArt: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.sm,
+    width: 56,
+    height: 56,
+    borderRadius: 12,
   },
   sheetHeaderText: {
     flex: 1,
   },
   sheetTitle: {
     ...typography.titleMd,
-    color: colors.onSurface,
+    color: '#FFF',
     fontWeight: '700',
   },
   sheetSubtitle: {
     ...typography.bodySm,
-    color: colors.onSurfaceVariant,
+    color: '#A5A5C7',
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.outlineVariant,
-    marginHorizontal: spacing.xl,
-    marginVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginHorizontal: 24,
+    marginVertical: 4,
   },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 24,
     paddingVertical: 14,
-    gap: 14,
+    gap: 16,
   },
   optionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(114,254,143,0.1)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -404,35 +409,34 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     ...typography.titleSm,
-    color: colors.onSurface,
+    color: '#FFF',
     fontWeight: '600',
   },
   optionSublabel: {
     ...typography.labelSm,
-    color: colors.onSurfaceVariant,
+    color: '#A5A5C7',
     marginTop: 1,
   },
-  // Playlist picker
   pickerTitle: {
     ...typography.headlineSm,
-    color: colors.onSurface,
+    color: '#FFF',
     fontWeight: '800',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   createRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    gap: 14,
+    gap: 16,
   },
   createIcon: {
     width: 48,
     height: 48,
-    borderRadius: radii.sm,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(123, 97, 255, 0.4)',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -445,50 +449,50 @@ const styles = StyleSheet.create({
   createInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 24,
     paddingVertical: 8,
     gap: 8,
   },
   createInput: {
     flex: 1,
-    height: 46,
-    backgroundColor: colors.surfaceContainerHighest,
-    borderRadius: radii.sm,
-    paddingHorizontal: 14,
-    color: colors.onSurface,
+    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    color: '#FFF',
     fontSize: 15,
     fontWeight: '500',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: 'rgba(123, 97, 255, 0.3)',
   },
   createBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.surfaceContainerHighest,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   playlistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    gap: 14,
+    gap: 16,
   },
   playlistIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surfaceContainerHighest,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -497,13 +501,13 @@ const styles = StyleSheet.create({
   },
   playlistName: {
     ...typography.titleSm,
-    color: colors.onSurface,
+    color: '#FFF',
     fontWeight: '600',
   },
   playlistCount: {
     ...typography.labelSm,
-    color: colors.onSurfaceVariant,
-    marginTop: 1,
+    color: '#A5A5C7',
+    marginTop: 2,
   },
   emptyState: {
     alignItems: 'center',
@@ -512,56 +516,51 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...typography.titleSm,
-    color: colors.onSurfaceVariant,
+    color: '#A5A5C7',
   },
-  emptyHint: {
-    ...typography.bodySm,
-    color: colors.outline,
-  },
-  // Queue viewer
   queueHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 24,
     paddingVertical: 4,
   },
   queueCount: {
     ...typography.bodySm,
-    color: colors.onSurfaceVariant,
+    color: '#A5A5C7',
   },
   queueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 10,
-    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 16,
   },
   queueRowActive: {
-    backgroundColor: 'rgba(114,254,143,0.06)',
-    borderRadius: radii.sm,
-    marginHorizontal: 8,
+    backgroundColor: 'rgba(123, 97, 255, 0.1)',
+    borderRadius: 16,
+    marginHorizontal: 12,
     paddingHorizontal: 12,
   },
   queueIndex: {
-    width: 24,
+    width: 20,
     ...typography.bodySm,
-    color: colors.onSurfaceVariant,
+    color: '#A5A5C7',
     textAlign: 'center',
   },
   queueArt: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
   },
   queueTitle: {
     ...typography.titleSm,
-    color: colors.onSurface,
+    color: '#FFF',
     fontWeight: '600',
   },
   queueArtist: {
     ...typography.labelSm,
-    color: colors.onSurfaceVariant,
-    marginTop: 1,
+    color: '#A5A5C7',
+    marginTop: 2,
   },
 });

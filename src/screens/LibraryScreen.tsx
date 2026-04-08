@@ -1,68 +1,85 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Alert, Dimensions, ScrollView } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radii } from '../theme';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
 import { useLibraryStore, usePlayerStore } from '../stores';
-import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+
+function GlassLibraryItem({ item, onPress }: { item: any; onPress: () => void }) {
+  return (
+    <View style={styles.glassItemContainer}>
+      <BlurView intensity={20} tint="dark" style={styles.glassItemBlur}>
+        <TouchableOpacity style={styles.listItem} onPress={onPress} activeOpacity={0.7}>
+          {item.type === 'gradient' ? (
+            <LinearGradient colors={['#7B61FF', '#4F39CC']} style={styles.itemArt}>
+              <MaterialIcon name="favorite" size={24} color="#FFF" />
+            </LinearGradient>
+          ) : item.type === 'blend' ? (
+            <LinearGradient colors={['#00C9FF', '#92FE9D']} style={styles.itemArt}>
+              <MaterialIcon name="group" size={24} color="#FFF" />
+            </LinearGradient>
+          ) : item.type === 'icon' ? (
+            <View style={[styles.itemArt, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+              <MaterialIcon name="download-for-offline" size={24} color={colors.primary} />
+            </View>
+          ) : (
+            <View style={[styles.itemArt, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+              <MaterialIcon name="library-music" size={24} color="#A5A5C7" />
+            </View>
+          )}
+
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={styles.itemSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+          </View>
+          
+          <MaterialIcon name="chevron-right" size={20} color="#5C5C8A" />
+        </TouchableOpacity>
+      </BlurView>
+    </View>
+  );
+}
 
 export function LibraryScreen({ navigation }: any) {
   const playlists = useLibraryStore((s) => s.playlists);
   const likedSongs = useLibraryStore((s) => s.likedSongs);
   const downloads = useLibraryStore((s) => s.downloads);
-  const [activeFilter, setActiveFilter] = React.useState<string>('Playlists');
-  const [sortBy, setSortBy] = React.useState<'recent' | 'alpha'>('recent');
-  const [gridView, setGridView] = React.useState(false);
-
-  const play = usePlayerStore((s) => s.play);
   const recentlyPlayed = useLibraryStore((s) => s.recentlyPlayed);
+  const play = usePlayerStore((s) => s.play);
 
-  function handleSortToggle() {
-    Alert.alert('Sort by', '', [
-      { text: 'Recently Played', onPress: () => setSortBy('recent') },
-      { text: 'Alphabetical', onPress: () => setSortBy('alpha') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }
-
+  const [activeFilter, setActiveFilter] = React.useState<string>('Playlists');
   const filters = ['Playlists', 'Artists', 'Albums', 'Downloads'];
 
   const libraryItems = [
     {
-      id: 'blend',
-      title: 'Duo Blend',
-      subtitle: 'Blend your taste with a friend',
-      type: 'blend',
-      icon: 'group',
-      onPress: () => navigation.navigate('Blend'),
-    },
-    {
       id: 'liked',
       title: 'Liked Songs',
-      subtitle: `Playlist • ${likedSongs.length} songs`,
+      subtitle: `${likedSongs.length} songs`,
       type: 'gradient',
-      icon: 'favorite',
       onPress: () => navigation.navigate('LikedSongs'),
     },
     {
       id: 'downloads',
-      title: 'Offline Essentials',
-      subtitle: `Playlist • ${downloads.length} songs`,
+      title: 'Downloads',
+      subtitle: `${downloads.length} songs`,
       type: 'icon',
-      icon: 'download-for-offline',
       onPress: () => {
-        if (downloads.length === 0) {
-          Alert.alert('No Downloads', 'Downloaded songs will appear here for offline listening.');
+        if (downloads.length > 0) {
+          navigation.navigate('PlaylistDetail', { playlistId: '__downloads__', title: 'Downloads' });
         } else {
-          navigation.navigate('PlaylistDetail', { playlistId: '__downloads__', title: 'Offline Essentials' });
+          Alert.alert('No Downloads', 'Songs you download will appear here.');
         }
       },
     },
     ...playlists.map((p) => ({
       id: p.id,
       title: p.title,
-      subtitle: `Playlist • ${p.trackIds.length} songs`,
+      subtitle: `Playlist • ${p.trackIds.length} tracks`,
       type: 'playlist',
       onPress: () => navigation.navigate('PlaylistDetail', { playlistId: p.id, title: p.title }),
     })),
@@ -70,157 +87,82 @@ export function LibraryScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      <LinearGradient
+        colors={['#4F39CC', '#16162E', colors.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Text style={styles.brandName}>Tunify</Text>
+          <Text style={styles.pageTitle}>Library</Text>
           <View style={styles.headerIcons}>
-            <TouchableOpacity onPress={() => navigation.navigate('Search')}>
-              <MaterialIcon name="search" size={24} color={colors.primary} />
-            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-              <MaterialIcon name="settings" size={24} color={colors.primary} />
+               <View style={styles.iconCircle}>
+                  <MaterialIcon name="settings" size={20} color="#FFF" />
+               </View>
             </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.pageTitle}>Your Library</Text>
 
         {/* Filter Chips */}
-        <View style={styles.filterRow}>
-          {filters.map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.chip, activeFilter === f && styles.activeChip]}
-              onPress={() => setActiveFilter(f)}
-            >
-              <Text style={[styles.chipText, activeFilter === f && styles.activeChipText]}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Sort Row */}
-      <View style={styles.sortRow}>
-        <TouchableOpacity style={styles.sortButton} onPress={handleSortToggle}>
-          <MaterialIcon name="swap-vert" size={18} color={colors.onSurfaceVariant} />
-          <Text style={styles.sortText}>{sortBy === 'recent' ? 'RECENTLY PLAYED' : 'A-Z'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setGridView(!gridView)}>
-          <MaterialIcon name={gridView ? 'view-list' : 'grid-view'} size={22} color={colors.onSurfaceVariant} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Recently Played */}
-      {recentlyPlayed.length > 0 && (
-        <View style={{ marginBottom: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: 10 }}>
-            <Text style={[typography.titleMd, { color: colors.onSurface, fontWeight: '700' }]}>🕐 Recently Played</Text>
-            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-              {recentlyPlayed.length > 5 && (
-                <TouchableOpacity onPress={() => navigation.navigate('History')}>
-                  <Text style={[typography.bodySm, { color: colors.primary }]}>See All</Text>
-                </TouchableOpacity>
-              )}
-              {recentlyPlayed.length > 5 && (
-                <TouchableOpacity onPress={() => {
-                  Alert.alert('Clear History', 'Remove all recently played songs?', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Clear', style: 'destructive', onPress: () => useLibraryStore.getState().clearRecentlyPlayed() },
-                  ]);
-                }}>
-                  <Text style={[typography.bodySm, { color: colors.error }]}>Clear</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-          <FlatList
-            data={recentlyPlayed.slice(0, 15)}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => `rp_${item.id}`}
-            contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: 12 }}
-            renderItem={({ item }) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          <View style={styles.filterRow}>
+            {filters.map((f) => (
               <TouchableOpacity
-                style={{ width: 100, alignItems: 'center' }}
-                onPress={() => {
-                  play(item, recentlyPlayed);
-                  navigation.navigate('Player');
-                }}
-                activeOpacity={0.7}
+                key={f}
+                style={[styles.chip, activeFilter === f && styles.activeChip]}
+                onPress={() => setActiveFilter(f)}
               >
-                <View style={{ width: 100, height: 100, borderRadius: radii.md, overflow: 'hidden' }}>
-                  <Image source={{ uri: item.artwork }} style={{ width: 100, height: 100 }} />
-                  <View style={{ position: 'absolute', bottom: 4, right: 4, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
-                    <MaterialIcon name="play-arrow" size={18} color={colors.primary} />
-                  </View>
-                </View>
-                <Text style={[typography.bodySm, { color: colors.onSurface, marginTop: 6, fontWeight: '600' }]} numberOfLines={1}>{item.title}</Text>
-                <Text style={[typography.labelSm, { color: colors.onSurfaceVariant }]} numberOfLines={1}>{item.artist}</Text>
+                {activeFilter === f && (
+                  <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
+                )}
+                <Text style={[styles.chipText, activeFilter === f && styles.activeChipText]}>{f}</Text>
               </TouchableOpacity>
-            )}
-          />
-        </View>
-      )}
+            ))}
+          </View>
+        </ScrollView>
+      </View>
 
-      {/* Library Items */}
       <FlatList
         data={libraryItems}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 200, paddingHorizontal: spacing.xl }}
-        ListFooterComponent={<MadeInIndiaFooter />}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.listItem} onPress={item.onPress} activeOpacity={0.7}>
-            {item.type === 'gradient' ? (
-              <LinearGradient
-                colors={['#450af5', '#8e8ee5']}
-                style={styles.itemArt}
-              >
-                <MaterialIcon name="favorite" size={28} color="#ffffff" />
-              </LinearGradient>
-            ) : item.type === 'blend' ? (
-              <LinearGradient
-                colors={['#00b894', '#6c5ce7']}
-                style={styles.itemArt}
-              >
-                <MaterialIcon name="group" size={28} color="#ffffff" />
-              </LinearGradient>
-            ) : item.type === 'icon' ? (
-              <View style={[styles.itemArt, { backgroundColor: colors.surfaceContainerHighest }]}>
-                <MaterialIcon name="cloud-download" size={28} color={colors.primary} />
-              </View>
-            ) : (
-              <View style={[styles.itemArt, { backgroundColor: colors.surfaceContainer }]}>
-                <MaterialIcon name="queue-music" size={28} color={colors.onSurfaceVariant} />
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <>
+            {recentlyPlayed.length > 0 && (
+              <View style={styles.recentsSection}>
+                <Text style={styles.sectionTitle}>Recently Played</Text>
+                <FlatList
+                  data={recentlyPlayed.slice(0, 8)}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => `recent_${item.id}`}
+                  contentContainerStyle={{ gap: 16 }}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity 
+                      style={styles.recentItem}
+                      onPress={() => {
+                        play(item, recentlyPlayed);
+                        navigation.navigate('Player');
+                      }}
+                    >
+                      <Image source={{ uri: item.artwork }} style={styles.recentImage} />
+                      <Text style={styles.recentTitle} numberOfLines={1}>{item.title}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
               </View>
             )}
-
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemTitle}>{item.title}</Text>
-              <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation?.();
-                // Quick play first song in playlist
-                if (item.id === 'liked' && likedSongs.length > 0) {
-                  play(likedSongs[0], likedSongs);
-                  navigation.navigate('Player');
-                } else if (item.id === 'downloads' && downloads.length > 0) {
-                  play(downloads[0] as any, downloads as any);
-                  navigation.navigate('Player');
-                } else {
-                  item.onPress();
-                }
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ marginRight: 4 }}
-            >
-              <MaterialIcon name="play-circle-outline" size={28} color={colors.primary} />
-            </TouchableOpacity>
-            <MaterialIcon name="chevron-right" size={22} color={colors.onSurfaceVariant} />
-          </TouchableOpacity>
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Collections</Text>
+          </>
+        }
+        renderItem={({ item }) => (
+          <GlassLibraryItem item={item} onPress={item.onPress} />
         )}
+        ListFooterComponent={<MadeInIndiaFooter />}
       />
 
       {/* FAB */}
@@ -232,8 +174,11 @@ export function LibraryScreen({ navigation }: any) {
           await createPlaylist(`My Playlist #${playlists.length + 1}`);
         }}
       >
-        <MaterialIcon name="add" size={28} color={colors.onPrimaryContainer} />
+        <BlurView intensity={30} tint="light" style={styles.fabBlur}>
+          <MaterialIcon name="add" size={28} color="#FFF" />
+        </BlurView>
       </TouchableOpacity>
+
       <FirstTimeTooltip screen="library" />
     </View>
   );
@@ -247,76 +192,113 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.xl,
     paddingTop: 60,
+    marginBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  brandName: {
-    ...typography.headlineSm,
-    color: colors.primary,
-    fontWeight: '700',
+  pageTitle: {
+    ...typography.displaySm,
+    color: colors.onSurface,
+    fontWeight: '800',
   },
   headerIcons: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
-  pageTitle: {
-    ...typography.headlineLg,
-    color: colors.onSurface,
-    marginBottom: 16,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  filterScroll: {
+    marginHorizontal: -spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+    gap: 10,
+    paddingRight: 40,
   },
   chip: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 9999,
-    backgroundColor: colors.surfaceContainerHighest,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   activeChip: {
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.primary,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   chipText: {
-    ...typography.bodySm,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
+    ...typography.labelLg,
+    color: '#A5A5C7',
+    fontWeight: '600',
   },
   activeChipText: {
-    color: colors.onPrimaryContainer,
+    color: '#FFF',
     fontWeight: '700',
   },
-  sortRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  listContent: {
     paddingHorizontal: spacing.xl,
+    paddingBottom: 120,
+  },
+  sectionTitle: {
+    ...typography.headlineSm,
+    color: colors.onSurface,
+    fontWeight: '800',
+    marginBottom: 16,
+  },
+  recentsSection: {
+    marginTop: 12,
+  },
+  recentItem: {
+    width: 110,
+    marginRight: 16,
+  },
+  recentImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 24,
+    marginBottom: 8,
+  },
+  recentTitle: {
+    ...typography.labelLg,
+    color: colors.onSurface,
+    textAlign: 'center',
+  },
+
+  // ─── Glass Item ───
+  glassItemContainer: {
+    borderRadius: 24,
+    overflow: 'hidden',
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sortText: {
-    ...typography.labelSm,
-    color: colors.onSurfaceVariant,
+  glassItemBlur: {
+    padding: 12,
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    paddingVertical: 10,
   },
   itemArt: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.sm,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -330,23 +312,30 @@ const styles = StyleSheet.create({
   },
   itemSubtitle: {
     ...typography.bodySm,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
+    color: '#A5A5C7',
+    marginTop: 4,
   },
+
+  // ─── FAB ───
   fab: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 110,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: 'hidden',
     elevation: 8,
-    shadowColor: colors.primaryContainer,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+  },
+  fabBlur: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

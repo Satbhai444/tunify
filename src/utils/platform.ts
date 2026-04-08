@@ -55,7 +55,6 @@ export async function downloadTrack(
   title: string,
 ): Promise<{ uri: string; size: number } | null> {
   if (Platform.OS === 'web') {
-    // Browser: trigger download via anchor
     try {
       const a = document.createElement('a');
       a.href = url;
@@ -72,17 +71,26 @@ export async function downloadTrack(
 
   // Native: use expo-file-system
   try {
-    const { Paths, Directory, File: FSFile } = require('expo-file-system');
-    const downloadsDir = new Directory(Paths.document, 'tunify_downloads');
-    if (!downloadsDir.exists) {
-      downloadsDir.create({ idempotent: true });
+    const FileSystem = require('expo-file-system');
+    const downloadsDir = `${FileSystem.documentDirectory}tunify_downloads/`;
+    
+    // Ensure directory exists
+    const dirInfo = await FileSystem.getInfoAsync(downloadsDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true });
     }
+
     const safeTitle = title.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 50);
     const fileName = `${trackId.replace(/[^a-zA-Z0-9_]/g, '_')}_${safeTitle}.mp3`;
-    const destFile = new FSFile(downloadsDir, fileName);
-    const downloaded = await FSFile.downloadFileAsync(url, destFile, { idempotent: true });
-    const fileInfo = downloaded.info();
-    return { uri: downloaded.uri, size: fileInfo.size ?? 0 };
+    const fileUri = `${downloadsDir}${fileName}`;
+
+    const { uri } = await FileSystem.downloadAsync(url, fileUri);
+    const info = await FileSystem.getInfoAsync(uri);
+    
+    return { 
+      uri, 
+      size: (info as any).size || 0 
+    };
   } catch (e) {
     console.warn('Download failed:', e);
     return null;

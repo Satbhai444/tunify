@@ -5,16 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Share,
-  ToastAndroid,
   Platform,
+  ToastAndroid,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { colors, typography, spacing, radii } from '../theme';
-import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
+import { colors, typography, spacing } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
-import { BottomSheetMenu } from '../components/BottomSheet';
 import { useLibraryStore, usePlayerStore } from '../stores';
 import type { Track } from '../types';
 
@@ -23,149 +21,87 @@ export function LikedSongsScreen({ navigation }: any) {
   const toggleLike = useLibraryStore((s) => s.toggleLike);
   const play = usePlayerStore((s) => s.play);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const addToQueue = usePlayerStore((s) => s.addToQueue);
-  const [trackMenu, setTrackMenu] = React.useState<Track | null>(null);
 
   function showToast(msg: string) {
-    if (Platform.OS === 'android') {
-      ToastAndroid.show(msg, ToastAndroid.SHORT);
-    }
-  }
-
-  function handlePlay(track: Track) {
-    play(track, likedSongs);
-  }
-
-  function handlePlayAll() {
-    if (likedSongs.length > 0) {
-      play(likedSongs[0], likedSongs);
-    }
-  }
-
-  function handleShufflePlay() {
-    if (likedSongs.length > 0) {
-      const shuffled = [...likedSongs].sort(() => Math.random() - 0.5);
-      play(shuffled[0], shuffled);
-    }
+    if (Platform.OS === 'android') ToastAndroid.show(msg, ToastAndroid.SHORT);
   }
 
   return (
     <View style={styles.container}>
+      <LinearGradient colors={['#7B61FF', '#0D0D1F']} style={StyleSheet.absoluteFill} />
+      
       <FlatList
         data={likedSongs}
         keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 200 }}
-        ListFooterComponent={<MadeInIndiaFooter />}
+        contentContainerStyle={styles.scrollContent}
         ListHeaderComponent={
-          <>
-            {/* Hero */}
-            <LinearGradient colors={['#450af5', '#8e8ee5', colors.background]} style={styles.hero}>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Main' }] })}>
-                <MaterialIcon name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
-              <MaterialIcon name="favorite" size={64} color="#fff" />
-              <Text style={styles.heroTitle}>Liked Songs</Text>
-              <Text style={styles.heroCount}>{likedSongs.length} songs</Text>
-            </LinearGradient>
+          <View style={styles.header}>
+            <View style={styles.heroIconContainer}>
+               <MaterialIcon name="favorite" size={60} color="#FFF" />
+               <BlurView intensity={20} tint="dark" style={styles.artOverlay} />
+            </View>
 
-            {/* Action Row */}
-            {likedSongs.length > 0 && (
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.shuffleBtn} onPress={handleShufflePlay}>
-                  <MaterialIcon name="shuffle" size={22} color={colors.onSurface} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.playAllBtn} onPress={handlePlayAll}>
-                  <MaterialIcon name="play-arrow" size={30} color={colors.onPrimaryContainer} />
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={styles.infoSection}>
+               <Text style={styles.title}>Liked Songs</Text>
+               <Text style={styles.subtitle}>{likedSongs.length} songs saved to your library</Text>
+            </View>
 
-            {likedSongs.length === 0 && (
-              <View style={styles.emptyState}>
-                <View style={styles.emptyIconWrap}>
-                  <MaterialIcon name="favorite-border" size={64} color={colors.primary} />
-                </View>
-                <Text style={styles.emptyTitle}>No liked songs yet</Text>
-                <Text style={styles.emptyText}>Tap the heart icon on any song to save it here for easy access</Text>
-                <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Main' }] })}>
-                  <MaterialIcon name="search" size={20} color={colors.onPrimary} />
-                  <Text style={styles.emptyBtnText}>Explore Songs</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
+            <View style={styles.controls}>
+               <TouchableOpacity 
+                 style={styles.playBtn}
+                 onPress={() => likedSongs.length > 0 && play(likedSongs[0], likedSongs)}
+               >
+                  <MaterialIcon name="play-arrow" size={32} color="#FFF" />
+               </TouchableOpacity>
+               <TouchableOpacity style={styles.actionBtn} onPress={() => showToast('Shuffle coming soon!')}>
+                  <MaterialIcon name="shuffle" size={24} color="#FFF" />
+               </TouchableOpacity>
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+             <MaterialIcon name="favorite-border" size={64} color="#5C5C8A" />
+             <Text style={styles.emptyText}>Your heart is empty</Text>
+             <TouchableOpacity 
+               style={styles.exploreBtn}
+               onPress={() => navigation.navigate('Home')}
+             >
+                <Text style={styles.exploreBtnText}>Find some music</Text>
+             </TouchableOpacity>
+          </View>
         }
         renderItem={({ item }) => {
           const isActive = currentTrack?.id === item.id;
           return (
-            <TouchableOpacity
+            <TouchableOpacity 
               style={styles.trackRow}
-              onPress={() => handlePlay(item)}
-              activeOpacity={0.7}
+              onPress={() => play(item, likedSongs)}
             >
-              <Image source={{ uri: item.artwork }} style={styles.trackArt} contentFit="cover" />
-              <View style={styles.trackInfo}>
-                <Text
-                  style={[styles.trackTitle, isActive && { color: colors.primary }]}
-                  numberOfLines={1}
-                >
-                  {item.title}
-                </Text>
-                <Text style={styles.trackArtist} numberOfLines={1}>
-                  {item.artist}
-                </Text>
-              </View>
-              {isActive && <MaterialIcon name="equalizer" size={20} color={colors.primary} />}
-              <TouchableOpacity
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={() => setTrackMenu(item)}
-              >
-                <MaterialIcon name="more-vert" size={20} color={colors.onSurfaceVariant} />
-              </TouchableOpacity>
+              <BlurView intensity={10} tint="light" style={styles.trackBlur}>
+                <Image source={{ uri: item.artwork }} style={styles.trackArt} />
+                <View style={styles.trackInfo}>
+                  <Text style={[styles.trackTitle, isActive && { color: colors.primary }]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.trackArtist} numberOfLines={1}>{item.artist}</Text>
+                </View>
+                {isActive && <MaterialIcon name="equalizer" size={18} color={colors.primary} />}
+                <TouchableOpacity onPress={() => toggleLike(item)}>
+                  <MaterialIcon name="favorite" size={20} color="#FF7151" />
+                </TouchableOpacity>
+              </BlurView>
             </TouchableOpacity>
           );
         }}
       />
 
-      {/* Track Menu */}
-      {trackMenu && (
-        <BottomSheetMenu
-          visible={!!trackMenu}
-          onClose={() => setTrackMenu(null)}
-          title={trackMenu.title}
-          subtitle={trackMenu.artist}
-          artwork={trackMenu.artwork}
-          options={[
-            {
-              icon: 'heart-broken',
-              label: 'Remove from Liked Songs',
-              destructive: true,
-              onPress: () => {
-                toggleLike(trackMenu);
-                showToast('Removed from Liked Songs');
-              },
-            },
-            {
-              icon: 'queue-music',
-              label: 'Add to Queue',
-              onPress: () => {
-                addToQueue(trackMenu);
-                showToast('Added to queue');
-              },
-            },
-            {
-              icon: 'share',
-              label: 'Share',
-              onPress: () => {
-                Share.share({
-                  message: `🎵 Listen to "${trackMenu.title}" by ${trackMenu.artist} on Tunify!`,
-                });
-              },
-            },
-          ]}
-        />
-      )}
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={() => navigation.goBack()}
+      >
+        <MaterialIcon name="arrow-back" size={24} color="#FFF" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -173,125 +109,132 @@ export function LikedSongsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0D0D1F',
   },
-  hero: {
-    paddingTop: 80,
-    paddingBottom: 32,
+  scrollContent: {
+    paddingBottom: 150,
+  },
+  header: {
     alignItems: 'center',
-    gap: 12,
+    paddingTop: 80,
+    paddingBottom: 30,
   },
   backButton: {
     position: 'absolute',
-    top: 52,
-    left: spacing.xl,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTitle: {
-    ...typography.headlineLg,
-    color: '#fff',
-    fontWeight: '800',
-  },
-  heroCount: {
-    ...typography.bodySm,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 12,
-    gap: 16,
-  },
-  shuffleBtn: {
+    top: 50,
+    left: 20,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surfaceContainer,
-    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
-  },
-  playAllBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primary,
     alignItems: 'center',
+    zIndex: 10,
+  },
+  heroIconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,113,81,0.2)',
     justifyContent: 'center',
-    elevation: 6,
-  },
-  emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
+    elevation: 20,
+    overflow: 'hidden',
+  },
+  artOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  infoSection: {
+    alignItems: 'center',
+    marginTop: 24,
     paddingHorizontal: 40,
-    gap: 16,
   },
-  emptyIconWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    ...typography.titleLg,
-    color: colors.onSurface,
-    fontWeight: '700',
+  title: {
+    ...typography.headlineSm,
+    color: '#FFF',
+    fontWeight: '800',
     textAlign: 'center',
   },
-  emptyText: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+  subtitle: {
+    ...typography.bodySm,
+    color: '#A5A5C7',
+    marginTop: 6,
     textAlign: 'center',
-    lineHeight: 22,
   },
-  emptyBtn: {
+  controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    gap: 8,
-    marginTop: 8,
+    gap: 30,
+    marginTop: 30,
   },
-  emptyBtnText: {
-    ...typography.titleSm,
-    color: colors.onPrimary,
-    fontWeight: '700',
+  playBtn: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+  },
+  actionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   trackRow: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  trackBlur: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 10,
-    gap: 12,
+    padding: 12,
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   trackArt: {
-    width: 50,
-    height: 50,
-    borderRadius: radii.sm,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
   },
   trackInfo: {
     flex: 1,
   },
   trackTitle: {
     ...typography.titleSm,
-    color: colors.onSurface,
-    fontWeight: '600',
+    color: '#FFF',
+    fontWeight: '700',
   },
   trackArtist: {
-    ...typography.bodySm,
-    color: colors.onSurfaceVariant,
+    ...typography.labelSm,
+    color: '#5C5C8A',
     marginTop: 2,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+  },
+  emptyText: {
+    ...typography.titleMd,
+    color: '#5C5C8A',
+    marginTop: 20,
+  },
+  exploreBtn: {
+    marginTop: 20,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 25,
+    backgroundColor: colors.primary,
+  },
+  exploreBtnText: {
+    ...typography.titleSm,
+    color: '#FFF',
+    fontWeight: '700',
   },
 });

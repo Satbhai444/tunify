@@ -1,30 +1,21 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
-import { colors, typography, spacing, radii } from '../theme';
+import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
+import { colors, typography, spacing } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { search } from '../api';
 import { usePlayerStore, useLibraryStore } from '../stores';
 import { Track, Album, Artist } from '../types';
 
 const GENRES = [
-  { name: 'Bollywood', icon: 'movie', gradient: ['#dc2626', '#9a3412'] as [string, string] },
-  { name: 'Pop', icon: 'music-note', gradient: ['#ec4899', '#be123c'] as [string, string] },
-  { name: 'Hip-Hop', icon: 'headphones', gradient: ['#f97316', '#b45309'] as [string, string] },
-  { name: 'Indie', icon: 'piano', gradient: ['#14b8a6', '#065f46'] as [string, string] },
-  { name: 'Rock', icon: 'whatshot', gradient: ['#9333ea', '#312e81'] as [string, string] },
-  { name: 'Chill', icon: 'spa', gradient: ['#3b82f6', '#155e75'] as [string, string] },
-  { name: 'Workout', icon: 'fitness-center', gradient: ['#84cc16', '#15803d'] as [string, string] },
-  { name: 'Romance', icon: 'favorite', gradient: ['#c026d3', '#831843'] as [string, string] },
-  { name: 'Punjabi', icon: 'audiotrack', gradient: ['#f59e0b', '#d97706'] as [string, string] },
-  { name: 'K-Pop', icon: 'star', gradient: ['#06b6d4', '#0e7490'] as [string, string] },
-  { name: 'Lo-Fi', icon: 'headset', gradient: ['#6366f1', '#4338ca'] as [string, string] },
-  { name: 'EDM', icon: 'equalizer', gradient: ['#10b981', '#047857'] as [string, string] },
-  { name: 'Classical', icon: 'library-music', gradient: ['#78716c', '#44403c'] as [string, string] },
-  { name: 'Party', icon: 'celebration', gradient: ['#f43f5e', '#e11d48'] as [string, string] },
-  { name: 'Devotional', icon: 'self-improvement', gradient: ['#fbbf24', '#b45309'] as [string, string] },
-  { name: 'Ghazals', icon: 'mic', gradient: ['#a78bfa', '#7c3aed'] as [string, string] },
+  { name: 'Bollywood', icon: 'movie', gradient: ['#FF4B4B', '#4F39CC'] as [string, string] },
+  { name: 'Pop', icon: 'music-note', gradient: ['#F59E0B', '#4F39CC'] as [string, string] },
+  { name: 'Lo-Fi', icon: 'headset', gradient: ['#10B981', '#0D0D1F'] as [string, string] },
+  { name: 'Hip-Hop', icon: 'headphones', gradient: ['#3B82F6', '#0D0D1F'] as [string, string] },
+  { name: 'Rock', icon: 'whatshot', gradient: ['#8B5CF6', '#0D0D1F'] as [string, string] },
+  { name: 'Chill', icon: 'spa', gradient: ['#EC4899', '#0D0D1F'] as [string, string] },
 ];
 
 type TabType = 'songs' | 'artists' | 'albums';
@@ -35,18 +26,13 @@ export function SearchScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<TabType>('songs');
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  
   const play = usePlayerStore((s) => s.play);
-  const addRecentSearch = useLibraryStore((s) => s.addRecentSearch);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
   const recentSearches = useLibraryStore((s) => s.recentSearches);
+  const addRecentSearch = useLibraryStore((s) => s.addRecentSearch);
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  // Cleanup debounce on unmount
-  React.useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
 
   const handleSearch = useCallback(async (text: string) => {
     setQuery(text);
@@ -64,190 +50,164 @@ export function SearchScreen({ navigation }: any) {
         const res = await search(text.trim());
         setResults({ tracks: res.tracks, albums: res.albums, artists: res.artists });
         setHasSearched(true);
-      } catch (e) {
-        console.error('Search failed:', e);
+        addRecentSearch(text.trim());
+      } catch {
         setHasSearched(true);
       } finally {
         setSearching(false);
       }
-      addRecentSearch(text.trim());
     }, 500);
   }, [addRecentSearch]);
 
-  const handleTrackPress = (track: Track) => {
-    play(track, results.tracks);
-    navigation.navigate('Player');
+  const renderTrackItem = ({ item }: { item: Track }) => {
+    const isActive = currentTrack?.id === item.id;
+    return (
+      <TouchableOpacity 
+        style={styles.resultRow} 
+        onPress={() => play(item, results.tracks)}
+      >
+        <BlurView intensity={10} tint="light" style={styles.recordBlur}>
+          <Image source={{ uri: item.artwork }} style={styles.recordArt} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.recordTitle, isActive && { color: colors.primary }]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.recordSub}>{item.artist}</Text>
+          </View>
+          {isActive ? (
+            <MaterialIcon name="equalizer" size={18} color={colors.primary} />
+          ) : (
+            <MaterialIcon name="play-arrow" size={20} color="#5C5C8A" />
+          )}
+        </BlurView>
+      </TouchableOpacity>
+    );
   };
-
-  const handleGenrePress = (genre: string) => {
-    handleSearch(genre);
-  };
-
-  const renderTrack = ({ item }: { item: Track }) => (
-    <TouchableOpacity style={styles.trackRow} onPress={() => handleTrackPress(item)} activeOpacity={0.7}>
-      <Image source={{ uri: item.artwork }} style={styles.trackArt} />
-      <View style={styles.trackInfo}>
-        <Text style={styles.trackTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.trackArtist} numberOfLines={1}>{item.artist}</Text>
-      </View>
-      <Text style={styles.trackDuration}>
-        {Math.floor(item.duration / 60)}:{String(item.duration % 60).padStart(2, '0')}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderArtist = ({ item }: { item: Artist }) => (
-    <TouchableOpacity
-      style={styles.artistItem}
-      activeOpacity={0.7}
-      onPress={() => navigation.navigate('ArtistDetail', {
-        artistId: item.id,
-        artistName: item.name,
-        artistImage: item.image,
-      })}
-    >
-      <Image source={{ uri: item.image }} style={styles.artistImage} />
-      <Text style={styles.artistName} numberOfLines={1}>{item.name}</Text>
-    </TouchableOpacity>
-  );
-
-  const renderAlbum = ({ item }: { item: Album }) => (
-    <TouchableOpacity
-      style={styles.albumItem}
-      activeOpacity={0.7}
-      onPress={() => navigation.navigate('AlbumDetail', {
-        albumId: item.id,
-        albumName: item.title,
-        albumArtwork: item.artwork,
-      })}
-    >
-      <Image source={{ uri: item.artwork }} style={styles.albumArt} />
-      <Text style={styles.albumTitle} numberOfLines={1}>{item.title}</Text>
-      <Text style={styles.albumArtist} numberOfLines={1}>{item.artist}</Text>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      <LinearGradient colors={['#4F39CC', '#0D0D1F']} style={StyleSheet.absoluteFill} />
+      
+      {/* Search Header */}
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Search</Text>
-        <View style={styles.searchBar}>
-          <MaterialIcon name="search" size={22} color={colors.onSurfaceVariant} />
+        <Text style={styles.pageTitle}>Explore</Text>
+        <BlurView intensity={20} tint="dark" style={styles.searchBarWrapper}>
+          <MaterialIcon name="search" size={22} color="#FFF" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Songs, artists, or albums"
-            placeholderTextColor={colors.onSurfaceVariant}
+            placeholder="Search songs, artists..."
+            placeholderTextColor="#A5A5C7"
             value={query}
             onChangeText={handleSearch}
             autoCorrect={false}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch('')}>
-              <MaterialIcon name="close" size={20} color={colors.onSurfaceVariant} />
+              <MaterialIcon name="close" size={20} color="#FFF" />
             </TouchableOpacity>
           )}
-        </View>
+        </BlurView>
       </View>
 
       {!hasSearched ? (
-        /* Browse Categories */
-        <FlatList
-          data={GENRES}
-          numColumns={2}
-          keyExtractor={(item) => item.name}
-          contentContainerStyle={styles.genreGrid}
-          columnWrapperStyle={{ gap: 12 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <>
-              {recentSearches.length > 0 && (
-                <View style={styles.recentSection}>
-                  <Text style={styles.recentTitle}>Recent Searches</Text>
-                  {recentSearches.slice(0, 5).map((q) => (
-                    <TouchableOpacity key={q} onPress={() => handleSearch(q)} style={styles.recentItem}>
-                      <MaterialIcon name="history" size={18} color={colors.onSurfaceVariant} />
-                      <Text style={styles.recentText}>{q}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-              <Text style={styles.browseTitle}>Browse Categories</Text>
-            </>
-          }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.genreCard}
-              onPress={() => handleGenrePress(item.name)}
-              activeOpacity={0.8}
-            >
-              <LinearGradient colors={item.gradient} style={styles.genreGradient}>
-                <MaterialIcon name={item.icon as any} size={28} color="rgba(255,255,255,0.3)" />
-                <Text style={styles.genreName}>{item.name}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.browseContent}>
+          {recentSearches.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Recent Searches</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                {recentSearches.slice(0, 5).map((q) => (
+                  <TouchableOpacity key={q} onPress={() => handleSearch(q)} style={styles.recentPill}>
+                    <Text style={styles.recentPillText}>{q}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           )}
-          ListFooterComponent={<><MadeInIndiaFooter /><View style={{ height: 100 }} /></>}
-        />
-      ) : (
-        /* Search Results */
-        <View style={{ flex: 1 }}>
-          {/* Tabs */}
-          <View style={styles.tabs}>
-            {(['songs', 'artists', 'albums'] as TabType[]).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tab, activeTab === tab && styles.activeTab]}
-                onPress={() => setActiveTab(tab)}
+
+          <Text style={styles.sectionTitle}>Browse Categories</Text>
+          <View style={styles.genreGrid}>
+            {GENRES.map((g) => (
+              <TouchableOpacity 
+                key={g.name} 
+                style={styles.genreCard}
+                onPress={() => handleSearch(g.name)}
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <LinearGradient colors={g.gradient} style={styles.genreGradient}>
+                  <Text style={styles.genreText}>{g.name}</Text>
+                  <MaterialIcon name={g.icon as any} size={24} color="rgba(255,255,255,0.3)" />
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1 }}>
+          <View style={styles.tabs}>
+            {(['songs', 'artists', 'albums'] as TabType[]).map((t) => (
+              <TouchableOpacity 
+                key={t} 
+                onPress={() => setActiveTab(t)}
+                style={[styles.tab, activeTab === t && styles.activeTab]}
+              >
+                <Text style={[styles.tabText, activeTab === t && styles.activeTabText]}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {activeTab === 'songs' && (
+          {searching ? (
+            <View style={styles.center}>
+               <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : activeTab === 'songs' ? (
             <FlatList
               data={results.tracks}
               keyExtractor={(item) => item.id}
-              renderItem={renderTrack}
-              contentContainerStyle={{ paddingBottom: 160 }}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>{searching ? 'Searching...' : 'No songs found'}</Text>
-              }
-              ListFooterComponent={<MadeInIndiaFooter />}
+              renderItem={renderTrackItem}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
             />
-          )}
-          {activeTab === 'artists' && (
+          ) : activeTab === 'artists' ? (
             <FlatList
               data={results.artists}
-              numColumns={3}
               keyExtractor={(item) => item.id}
-              renderItem={renderArtist}
-              contentContainerStyle={{ paddingBottom: 160, paddingHorizontal: spacing.xl }}
-              columnWrapperStyle={{ gap: 16 }}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>No artists found</Text>
-              }
-              ListFooterComponent={<MadeInIndiaFooter />}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.resultRow}
+                  onPress={() => navigation.navigate('ArtistDetail', { artistId: item.id, artistName: item.name, artistImage: item.image })}
+                >
+                  <BlurView intensity={10} tint="light" style={styles.recordBlur}>
+                    <Image source={{ uri: item.image }} style={[styles.recordArt, { borderRadius: 24 }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.recordTitle} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.recordSub}>Artist</Text>
+                    </View>
+                    <MaterialIcon name="chevron-right" size={20} color="#5C5C8A" />
+                  </BlurView>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
             />
-          )}
-          {activeTab === 'albums' && (
+          ) : (
             <FlatList
               data={results.albums}
-              numColumns={2}
               keyExtractor={(item) => item.id}
-              renderItem={renderAlbum}
-              contentContainerStyle={{ paddingBottom: 160, paddingHorizontal: spacing.xl }}
-              columnWrapperStyle={{ gap: 12 }}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>No albums found</Text>
-              }
-              ListFooterComponent={<MadeInIndiaFooter />}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.resultRow}
+                  onPress={() => navigation.navigate('AlbumDetail', { albumId: item.id, albumName: item.title, albumArtwork: item.artwork })}
+                >
+                  <BlurView intensity={10} tint="light" style={styles.recordBlur}>
+                    <Image source={{ uri: item.artwork }} style={styles.recordArt} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.recordTitle} numberOfLines={1}>{item.title}</Text>
+                      <Text style={styles.recordSub}>{item.artist}</Text>
+                    </View>
+                    <MaterialIcon name="chevron-right" size={20} color="#5C5C8A" />
+                  </BlurView>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
             />
           )}
         </View>
@@ -256,49 +216,76 @@ export function SearchScreen({ navigation }: any) {
   );
 }
 
+import { ScrollView, ActivityIndicator } from 'react-native';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0D0D1F',
   },
   header: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   pageTitle: {
-    ...typography.displaySm,
-    color: colors.onSurface,
-    marginBottom: 16,
+    ...typography.headlineLg,
+    color: '#FFF',
+    fontWeight: '900',
+    marginBottom: 20,
   },
-  searchBar: {
+  searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceContainerHigh,
-    borderRadius: 9999,
-    paddingHorizontal: 20,
     height: 56,
-    gap: 12,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   searchInput: {
     flex: 1,
-    color: colors.onSurface,
+    marginLeft: 12,
+    color: '#FFF',
     fontSize: 16,
-    fontFamily: 'Inter',
+    fontWeight: '500',
   },
-  browseTitle: {
-    ...typography.headlineSm,
-    color: colors.onSurface,
+  browseContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 120,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    ...typography.titleMd,
+    color: '#FFF',
+    fontWeight: '800',
     marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+  recentPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  recentPillText: {
+    ...typography.labelLg,
+    color: '#A5A5C7',
   },
   genreGrid: {
-    paddingHorizontal: spacing.xl,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   genreCard: {
-    flex: 1,
+    width: '48%',
     height: 100,
-    borderRadius: radii.md,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   genreGradient: {
@@ -306,118 +293,64 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'space-between',
   },
-  genreName: {
-    ...typography.titleMd,
-    color: '#ffffff',
-    fontWeight: '700',
+  genreText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 16,
   },
   tabs: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.xl,
-    gap: 8,
-    marginBottom: 12,
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 20,
   },
   tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 9999,
-    backgroundColor: colors.surfaceContainerHighest,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   activeTab: {
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.primary,
   },
   tabText: {
     ...typography.labelLg,
-    color: colors.onSurfaceVariant,
-  },
-  activeTabText: {
-    color: colors.onPrimaryContainer,
-  },
-  trackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 8,
-    gap: 12,
-  },
-  trackArt: {
-    width: 48,
-    height: 48,
-    borderRadius: 4,
-  },
-  trackInfo: {
-    flex: 1,
-  },
-  trackTitle: {
-    ...typography.titleMd,
-    color: colors.onSurface,
-  },
-  trackArtist: {
-    ...typography.bodySm,
-    color: colors.onSurfaceVariant,
-  },
-  trackDuration: {
-    ...typography.bodySm,
-    color: colors.onSurfaceVariant,
-  },
-  artistItem: {
-    flex: 1,
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  artistImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-  },
-  artistName: {
-    ...typography.bodySm,
-    color: colors.onSurfaceVariant,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  albumItem: {
-    flex: 1,
-    marginBottom: 16,
-  },
-  albumArt: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: radii.md,
-    marginBottom: 8,
-  },
-  albumTitle: {
-    ...typography.bodySm,
-    color: colors.onSurface,
+    color: '#A5A5C7',
     fontWeight: '700',
   },
-  albumArtist: {
-    fontSize: 11,
-    color: colors.onSurfaceVariant,
+  activeTabText: {
+    color: '#FFF',
   },
-  emptyText: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-    marginTop: 40,
+  resultRow: {
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  recentSection: {
-    marginBottom: 24,
-  },
-  recentTitle: {
-    ...typography.headlineSm,
-    color: colors.onSurface,
-    marginBottom: 12,
-  },
-  recentItem: {
+  recordBlur: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
+    padding: 12,
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  recentText: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+  recordArt: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+  },
+  recordTitle: {
+    ...typography.titleSm,
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  recordSub: {
+    ...typography.labelSm,
+    color: '#5C5C8A',
+    marginTop: 2,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
