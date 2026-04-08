@@ -9,6 +9,7 @@ import {
   Platform,
   ToastAndroid,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -60,6 +61,37 @@ export function PlaylistDetailScreen({ route, navigation }: any) {
     setLoading(false);
   }
 
+  const handleRename = () => {
+    if (!playlistId?.startsWith('pl_')) return;
+    Alert.prompt(
+      'Rename Playlist',
+      'Enter new name for your playlist',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Rename', 
+          onPress: async (newName?: string) => {
+            if (newName && playlistId) {
+              await useLibraryStore.getState().renamePlaylist(playlistId, newName);
+              showToast('Playlist renamed');
+              navigation.setParams({ title: newName });
+            }
+          }
+        }
+      ],
+      'plain-text',
+      title
+    );
+  };
+
+  const handleShuffle = () => {
+    if (tracks.length > 0) {
+      const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+      play(shuffled[0], shuffled);
+      navigation.navigate('Player');
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <LinearGradient colors={themeMode === 'dark' ? ['#4F39CC', '#0D0D1F'] : ['#A5B4FC', '#F8F9FE']} style={StyleSheet.absoluteFill} />
@@ -85,7 +117,9 @@ export function PlaylistDetailScreen({ route, navigation }: any) {
               </View>
 
               <View style={styles.infoSection}>
-                 <Text style={[styles.title, { color: theme.onSurface }]} numberOfLines={2}>{title || 'Playlist'}</Text>
+                 <TouchableOpacity onPress={handleRename} disabled={!playlistId?.startsWith('pl_')}>
+                    <Text style={[styles.title, { color: theme.onSurface }]} numberOfLines={2}>{title || 'Playlist'}</Text>
+                 </TouchableOpacity>
                  <Text style={[styles.subtitle, { color: theme.onSurfaceVariant }]}>{tracks.length} songs • {description || 'Curated for you'}</Text>
               </View>
 
@@ -96,10 +130,16 @@ export function PlaylistDetailScreen({ route, navigation }: any) {
                  >
                     <MaterialIcon name="play-arrow" size={32} color="#FFF" />
                  </TouchableOpacity>
-                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => showToast('Shuffle coming soon!')}>
+                 <TouchableOpacity 
+                   style={[styles.actionBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+                   onPress={handleShuffle}
+                 >
                     <MaterialIcon name="shuffle" size={24} color={theme.onSurface} />
                  </TouchableOpacity>
-                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => sharePlaylist(title || 'Playlist', tracks.length, playlistId)}>
+                 <TouchableOpacity 
+                   style={[styles.actionBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+                   onPress={() => sharePlaylist(title || 'Playlist', tracks.length, playlistId)}
+                 >
                     <MaterialIcon name="share" size={24} color={theme.onSurface} />
                  </TouchableOpacity>
               </View>

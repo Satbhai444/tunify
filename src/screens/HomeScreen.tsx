@@ -7,7 +7,7 @@ import { MaterialIcon } from '../components/MaterialIcon';
 import { BottomSheetMenu } from '../components/BottomSheet';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
-import { getTrending, getPlaylistTracks, getCuratedSection, getDeezerChart, getNewReleases, getTopPlaylists, getTopArtists, getTopAlbums } from '../api';
+import { getTrending, getPlaylistTracks, getCuratedSection, getDeezerChart, getNewReleases, getTopPlaylists, getTopArtists, getTopAlbums, getRandomNewHits, deduplicateTracks } from '../api';
 import { usePlayerStore, useLibraryStore } from '../stores';
 import { useSettingsStore } from '../stores/settingsStore';
 import { shareSong } from '../utils/shareUtils';
@@ -112,10 +112,14 @@ export function HomeScreen({ navigation }: any) {
   }
 
   const fetchData = useCallback(async () => {
+    // Curated variety of sub-queries for diverse home screen content
+    const bollywoodQueries = ['Bollywood 2024', 'Arijit Singh Hits', 'Diljit Dosanjh', 'Lofi Bollywood'];
+    const bQuery = bollywoodQueries[Math.floor(Math.random() * bollywoodQueries.length)];
+
     const trackFetchers = [
       { key: 'trending', title: 'Trending Now', fetcher: getTrending },
-      { key: 'bollywood', title: 'Bollywood Hits', fetcher: () => getPlaylistTracks('159144718', 30) },
-      { key: 'bestnew', title: 'Best new songs', fetcher: () => getCuratedSection('new release latest songs', 30) },
+      { key: 'bollywood', title: 'Bollywood Hits', fetcher: () => getCuratedSection(bQuery, 30) },
+      { key: 'bestnew', title: 'Best new songs', fetcher: () => getRandomNewHits(30) },
     ];
 
     const [trackResults, fPlaylists] = await Promise.all([
@@ -124,14 +128,37 @@ export function HomeScreen({ navigation }: any) {
     ]);
 
     const newSections: TrackSection[] = [];
+    let allFetchedTracks: Track[] = [];
+
     (trackResults as PromiseSettledResult<Track[]>[]).forEach((result, i) => {
       if (result.status === 'fulfilled' && result.value.length > 0) {
-        const shuffled = [...result.value].sort(() => Math.random() - 0.5);
-        newSections.push({
-          key: trackFetchers[i].key,
-          title: trackFetchers[i].title,
-          tracks: shuffled,
-        });
+        // Collect all tracks for global deduplication
+        allFetchedTracks = [...allFetchedTracks, ...result.value];
+      }
+    });
+
+    // Global Deduplication & Filtering
+    const cleanPool = deduplicateTracks(allFetchedTracks);
+    const seenIds = new Set<string>();
+
+    trackFetchers.forEach((f, i) => {
+      const result = trackResults[i];
+      if (result.status === 'fulfilled') {
+        // Filter result tracks against the clean/deduplicated pool and ensure no cross-section overlap
+        const tracks = result.value
+          .filter((t: Track) => cleanPool.some((p: Track) => p.id === t.id))
+          .filter((t: Track) => !seenIds.has(t.id));
+        
+        if (tracks.length > 0) {
+          const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+          newSections.push({
+            key: f.key,
+            title: f.title,
+            tracks: shuffled,
+          });
+          // Mark these tracks as 'seen' so they don't appear in the NEXT section
+          tracks.forEach((t: Track) => seenIds.add(t.id));
+        }
       }
     });
 

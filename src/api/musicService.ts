@@ -32,9 +32,10 @@ async function setCache<T>(key: string, data: T): Promise<void> {
   }
 }
 
-function deduplicateTracks(tracks: Track[]): Track[] {
+export function deduplicateTracks(tracks: Track[]): Track[] {
   const seen = new Map<string, Track>();
   for (const track of tracks) {
+    if (!track.title || track.title.toLowerCase().includes('release')) continue; // Filter out low-quality results
     const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
     const existing = seen.get(key);
     // Prefer JioSaavn (full songs) over Deezer (30s previews)
@@ -84,6 +85,25 @@ export async function search(query: string): Promise<SearchResults> {
 
 export async function searchSongs(query: string): Promise<Track[]> {
   return searchJioSaavnSongs(query);
+}
+
+/**
+ * Returns a variety of high-quality new hits by rotating through 
+ * curated search terms to ensure the home screen always feels fresh.
+ */
+export async function getRandomNewHits(limit = 30): Promise<Track[]> {
+  const seeds = [
+    'Trending 2024 Songs',
+    'New Hindi Hits 2024',
+    'Latest Bollywood Melodies',
+    'Viral Fresh Music',
+    'Top Global Charts 2024',
+    'Fresh New Arrivals',
+    'Daily Trending Hits',
+    'Top Indian Pop 2024',
+  ];
+  const query = seeds[Math.floor(Math.random() * seeds.length)];
+  return getCuratedSection(query, limit);
 }
 
 export { getTrending, getNewReleases, getPlaylistTracks, getCuratedSection, getSongDetails, getAlbumDetails, getArtistDetails, getLyrics, getPlaylistDetails, getDeezerChart, getSimilarSongs, setPreferredQuality, getTopPlaylists, getTopArtists, getTopAlbums };

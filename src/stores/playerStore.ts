@@ -34,6 +34,7 @@ type AudioPlayer = any;
 // Single shared AudioPlayer instance
 let player: AudioPlayer | null = null;
 let positionTimer: ReturnType<typeof setInterval> | null = null;
+let sleepTimer: ReturnType<typeof setInterval> | null = null;
 let isTransitioning = false;
 let statusSubscription: { remove: () => void } | null = null;
 
@@ -71,6 +72,7 @@ export interface PlayerState {
   repeatMode: 'off' | 'one' | 'all';
   isShuffled: boolean;
   isPlayerReady: boolean;
+  sleepTimerRemaining: number | null; // in seconds
 
   setCurrentTrack: (track: Track | null) => void;
   setQueue: (tracks: Track[]) => void;
@@ -89,6 +91,7 @@ export interface PlayerState {
   seekTo: (seconds: number) => Promise<void>;
   addToQueue: (track: Track) => Promise<void>;
   applyEqPreset: (preset: 'flat' | 'bass' | 'treble' | 'vocal') => void;
+  setSleepTimer: (minutes: number | null) => void;
 }
 
 function startPositionTracking() {
@@ -479,6 +482,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeatMode: 'off',
   isShuffled: false,
   isPlayerReady: true,
+  sleepTimerRemaining: null,
 
   setCurrentTrack: (track) => set({ currentTrack: track }),
   setQueue: (tracks) => set({ queue: tracks }),
@@ -650,13 +654,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   applyEqPreset: (preset) => {
     if (!player) return;
     // Map EQ presets to playback rate + volume adjustments.
-    // True frequency-band DSP requires native modules (EAS build).
-    // These provide audible differentiation using available expo-audio knobs.
     const presets: Record<string, { rate: number; volume: number }> = {
       flat:   { rate: 1.0,  volume: 1.0 },
-      bass:   { rate: 0.97, volume: 1.0 },   // slightly slower = warmer/bassier feel
-      treble: { rate: 1.03, volume: 0.95 },   // slightly faster = brighter feel
-      vocal:  { rate: 1.0,  volume: 0.9 },    // lower volume = vocal clarity
+      bass:   { rate: 0.97, volume: 1.0 },
+      treble: { rate: 1.03, volume: 0.95 },
+      vocal:  { rate: 1.0,  volume: 0.9 },
     };
     const cfg = presets[preset] || presets.flat;
     try {
@@ -665,5 +667,32 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     } catch (e) {
       console.warn('EQ preset error:', e);
     }
+  },
+
+  setSleepTimer: (minutes) => {
+    if (sleepTimer) {
+      clearInterval(sleepTimer);
+      sleepTimer = null;
+    }
+
+    if (minutes === null) {
+      set({ sleepTimerRemaining: null });
+      return;
+    }
+
+    let remaining = minutes * 60;
+    set({ sleepTimerRemaining: remaining });
+
+    sleepTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(sleepTimer!);
+        sleepTimer = null;
+        set({ sleepTimerRemaining: null });
+        get().togglePlayPause().catch(() => {});
+      } else {
+        set({ sleepTimerRemaining: remaining });
+      }
+    }, 1000);
   },
 }));

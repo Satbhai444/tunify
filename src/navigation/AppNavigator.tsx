@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Linking, Alert } from 'react-native';
+import { View, StyleSheet, Linking, Alert, Platform } from 'react-native';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -28,7 +28,7 @@ import {
   PrivacyPolicyScreen,
   TermsScreen,
 } from '../screens';
-import { usePlayerStore } from '../stores';
+import { usePlayerStore, useSettingsStore } from '../stores';
 import { parseDeepLink } from '../utils/shareUtils';
 import { getSongDetails } from '../api';
 
@@ -41,6 +41,7 @@ function TabBarIcon({ name, color, size }: { name: string; color: string; size: 
 
 function HomeTabs() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const { themeMode } = useSettingsStore();
   const nav = useNavigation<any>();
 
   return (
@@ -50,26 +51,23 @@ function HomeTabs() {
           headerShown: false,
           tabBarStyle: {
             position: 'absolute',
-            bottom: 30,
-            left: 20,
-            right: 20,
-            height: 64,
-            borderRadius: 32,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 80,
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             elevation: 0,
-            paddingBottom: 0,
+            paddingBottom: Platform.OS === 'ios' ? 25 : 10,
           },
           tabBarBackground: () => (
             <BlurView
-              intensity={80}
-              tint="dark"
+              intensity={90}
+              tint={themeMode === 'dark' ? 'dark' : 'light'}
               style={{
                 ...StyleSheet.absoluteFillObject,
-                borderRadius: 32,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderTopWidth: 1,
+                borderColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
               }}
             />
           ),
@@ -91,22 +89,51 @@ function HomeTabs() {
           }}
         />
         <Tab.Screen
+          name="Discover"
+          component={DiscoverScreen}
+          options={{
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{ alignItems: 'center' }}>
+                <TabBarIcon name="explore" color={color} size={28} />
+                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
+              </View>
+            ),
+          }}
+        />
+        <Tab.Screen
           name="Search"
           component={SearchScreen}
           options={{
             tabBarIcon: ({ color, size, focused }) => (
               <View style={{ 
-                width: 50, 
-                height: 50, 
-                borderRadius: 25, 
+                width: 54, 
+                height: 54, 
+                borderRadius: 27, 
                 backgroundColor: focused ? colors.primary : 'rgba(255, 255, 255, 0.05)',
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginBottom: focused ? 10 : 0,
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.1)'
+                marginBottom: 10,
+                borderWidth: 1.5,
+                borderColor: focused ? colors.primary : 'rgba(255,255,255,0.1)',
+                elevation: focused ? 10 : 0,
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: focused ? 0.3 : 0,
+                shadowRadius: 8,
               }}>
                 <TabBarIcon name="search" color={focused ? '#FFF' : color} size={28} />
+              </View>
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{ alignItems: 'center' }}>
+                <TabBarIcon name="history" color={color} size={28} />
+                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
               </View>
             ),
           }}
@@ -126,7 +153,7 @@ function HomeTabs() {
       </Tab.Navigator>
 
       {currentTrack && (
-        <View style={{ position: 'absolute', bottom: 105, left: 10, right: 10 }}>
+        <View style={{ position: 'absolute', bottom: 85, left: 10, right: 10 }}>
            <MiniPlayer onPress={() => nav.navigate('Player')} />
         </View>
       )}
@@ -136,7 +163,7 @@ function HomeTabs() {
 
 // Deep linking config
 const linking = {
-  prefixes: ['tunify://'],
+  prefixes: ['tunify://', 'https://tunify-music.app'],
 };
 
 export function AppNavigator() {

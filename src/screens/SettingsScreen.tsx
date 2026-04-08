@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, darkColors, lightColors, typography } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { useSettingsStore, AudioQuality, AVATAR_OPTIONS } from '../stores/settingsStore';
-import { useLibraryStore } from '../stores/libraryStore';
+import { useLibraryStore, usePlayerStore } from '../stores';
 import { setPreferredQuality } from '../api/musicService';
 
 const QUALITY_LABELS: Record<AudioQuality, string> = {
@@ -141,6 +141,16 @@ export function SettingsScreen({ navigation }: any) {
     setProfileModalVisible(false);
   };
 
+  const sleepTimerRemaining = usePlayerStore((s) => s.sleepTimerRemaining);
+  const setSleepTimer = usePlayerStore((s) => s.setSleepTimer);
+  const applyEqPreset = usePlayerStore((s) => s.applyEqPreset);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <LinearGradient colors={themeMode === 'dark' ? ['#4F39CC', '#0D0D1F'] : ['#E0E7FF', '#F8F9FE']} style={StyleSheet.absoluteFill} />
@@ -193,6 +203,34 @@ export function SettingsScreen({ navigation }: any) {
               { text: 'Low (96kbps)', onPress: () => { settings.setAudioQuality('low'); setPreferredQuality('96kbps'); } },
               { text: 'Normal (160kbps)', onPress: () => { settings.setAudioQuality('normal'); setPreferredQuality('160kbps'); } },
               { text: 'High (320kbps)', onPress: () => { settings.setAudioQuality('high'); setPreferredQuality('320kbps'); } },
+            ]);
+          }}
+        />
+        <SettingItem
+          icon="tune"
+          label="Equalizer"
+          themeMode={themeMode}
+          onPress={() => {
+            Alert.alert('Equalizer', 'Select audio profile', [
+              { text: 'Flat (Default)', onPress: () => applyEqPreset('flat') },
+              { text: 'Bass Boost', onPress: () => applyEqPreset('bass') },
+              { text: 'Crystal Treble', onPress: () => applyEqPreset('treble') },
+              { text: 'Vocal Clarity', onPress: () => applyEqPreset('vocal') },
+            ]);
+          }}
+        />
+        <SettingItem
+          icon="timer"
+          label="Sleep Timer"
+          themeMode={themeMode}
+          value={sleepTimerRemaining ? `Ends in ${formatTime(sleepTimerRemaining)}` : 'Off'}
+          onPress={() => {
+            Alert.alert('Sleep Timer', 'Play music for...', [
+              { text: 'Off', onPress: () => setSleepTimer(null) },
+              { text: '5 Minutes', onPress: () => setSleepTimer(5) },
+              { text: '15 Minutes', onPress: () => setSleepTimer(15) },
+              { text: '30 Minutes', onPress: () => setSleepTimer(30) },
+              { text: '60 Minutes', onPress: () => setSleepTimer(60) },
             ]);
           }}
         />
