@@ -7,6 +7,7 @@ import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
 import { useLibraryStore, usePlayerStore, useSettingsStore } from '../stores';
+import { AVATAR_OPTIONS } from '../stores/settingsStore';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -58,8 +59,9 @@ export function LibraryScreen({ navigation }: any) {
   const recentlyPlayed = useLibraryStore((s) => s.recentlyPlayed);
   const renamePlaylist = useLibraryStore((s) => s.renamePlaylist);
   const play = usePlayerStore((s) => s.play);
-  const { themeMode } = useSettingsStore();
+  const { themeMode, avatarId } = useSettingsStore();
   const theme = themeMode === 'dark' ? darkColors : lightColors;
+  const selectedAvatar = AVATAR_OPTIONS.find((a) => a.id === avatarId) || AVATAR_OPTIONS[0];
 
   const [activeFilter, setActiveFilter] = React.useState<string>('Playlists');
   const filters = ['Playlists', 'Artists', 'Albums', 'Downloads'];
@@ -130,9 +132,9 @@ export function LibraryScreen({ navigation }: any) {
           <Text style={[styles.pageTitle, { color: theme.onSurface }]}>Library</Text>
           <View style={styles.headerIcons}>
             <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-               <View style={[styles.iconCircle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                  <MaterialIcon name="settings" size={20} color={theme.onSurface} />
-               </View>
+               <LinearGradient colors={selectedAvatar.bg} style={[styles.iconCircle, { borderWidth: 1, borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]}>
+                  <Text style={{ fontSize: 16 }}>{selectedAvatar.emoji}</Text>
+               </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>

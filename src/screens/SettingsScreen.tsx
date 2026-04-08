@@ -107,6 +107,8 @@ export function SettingsScreen({ navigation }: any) {
   const [editDob, setEditDob] = useState(settings.userDob);
   const [editGender, setEditGender] = useState(settings.userGender);
   const [editLocation, setEditLocation] = useState(settings.userLocation);
+  const [editGenre, setEditGenre] = useState(settings.userGenre);
+  const [editCountry, setEditCountry] = useState(settings.userCountry);
   const [editAvatarId, setEditAvatarId] = useState(settings.avatarId);
 
   const storageUsed = React.useMemo(() => {
@@ -124,6 +126,8 @@ export function SettingsScreen({ navigation }: any) {
     setEditDob(settings.userDob);
     setEditGender(settings.userGender);
     setEditLocation(settings.userLocation);
+    setEditGenre(settings.userGenre);
+    setEditCountry(settings.userCountry);
     setEditAvatarId(settings.avatarId);
     setProfileModalVisible(true);
   };
@@ -137,6 +141,8 @@ export function SettingsScreen({ navigation }: any) {
     settings.setUserDob(editDob.trim());
     settings.setUserGender(editGender);
     settings.setUserLocation(editLocation.trim());
+    settings.setUserGenre(editGenre.trim());
+    settings.setUserCountry(editCountry.trim());
     settings.setAvatarId(editAvatarId);
     setProfileModalVisible(false);
   };
@@ -332,6 +338,12 @@ export function SettingsScreen({ navigation }: any) {
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>LOCATION</Text>
               <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editLocation} onChangeText={setEditLocation} placeholder="City, Country" placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
+
+              <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>FAVORITE GENRE</Text>
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editGenre} onChangeText={setEditGenre} placeholder="Pop, Rock, Bollywood..." placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
+
+              <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>COUNTRY</Text>
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editCountry} onChangeText={setEditCountry} placeholder="Your country" placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
 
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setProfileModalVisible(false)}>

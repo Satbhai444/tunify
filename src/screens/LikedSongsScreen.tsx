@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { colors, darkColors, lightColors, typography, spacing } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { useLibraryStore, usePlayerStore, useSettingsStore } from '../stores';
+import { haptics } from '../utils/platform';
 import type { Track } from '../types';
 
 export function LikedSongsScreen({ navigation }: any) {
@@ -59,7 +60,20 @@ export function LikedSongsScreen({ navigation }: any) {
                >
                   <MaterialIcon name="play-arrow" size={32} color="#FFF" />
                </TouchableOpacity>
-               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => showToast('Shuffle coming soon!')}>
+               <TouchableOpacity 
+                 style={[styles.actionBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+                 onPress={() => {
+                   if (likedSongs.length > 0) {
+                     haptics.impact('medium');
+                     const shuffled = [...likedSongs].sort(() => Math.random() - 0.5);
+                     play(shuffled[0], shuffled);
+                     showToast('Shuffling Liked Songs');
+                     navigation.navigate('Player');
+                   } else {
+                     showToast('No liked songs to shuffle');
+                   }
+                 }}
+               >
                   <MaterialIcon name="shuffle" size={24} color={theme.onSurface} />
                </TouchableOpacity>
             </View>

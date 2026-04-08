@@ -9,7 +9,7 @@ import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
 import { getTrending, getPlaylistTracks, getCuratedSection, getDeezerChart, getNewReleases, getTopPlaylists, getTopArtists, getTopAlbums, getRandomNewHits, deduplicateTracks } from '../api';
 import { usePlayerStore, useLibraryStore } from '../stores';
-import { useSettingsStore } from '../stores/settingsStore';
+import { useSettingsStore, AVATAR_OPTIONS } from '../stores/settingsStore';
 import { shareSong } from '../utils/shareUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Track, Album, Artist, Playlist } from '../types';
@@ -102,8 +102,9 @@ export function HomeScreen({ navigation }: any) {
   const isLiked = useLibraryStore((s) => s.isLiked);
   const [trackMenu, setTrackMenu] = useState<Track | null>(null);
 
-  const { themeMode, userName } = useSettingsStore();
+  const { themeMode, userName, avatarId } = useSettingsStore();
   const theme = themeMode === 'dark' ? darkColors : lightColors;
+  const selectedAvatar = AVATAR_OPTIONS.find((a) => a.id === avatarId) || AVATAR_OPTIONS[0];
 
   function showToast(msg: string) {
     if (Platform.OS === 'android') {
@@ -112,9 +113,22 @@ export function HomeScreen({ navigation }: any) {
   }
 
   const fetchData = useCallback(async () => {
-    // Curated variety of sub-queries for diverse home screen content
-    const bollywoodQueries = ['Bollywood 2024', 'Arijit Singh Hits', 'Diljit Dosanjh', 'Lofi Bollywood'];
+    const bollywoodQueries = ['Bollywood 2024', 'Arijit Singh Hits', 'Diljit Dosanjh', 'Lofi Bollywood', 'Party Mix', 'Romantic Hits'];
     const bQuery = bollywoodQueries[Math.floor(Math.random() * bollywoodQueries.length)];
+
+    const playlistSeeds = [
+      'Bollywood Party Hits',
+      'Hindi Lo-Fi Chill',
+      'Trending Punjabi 2024',
+      '90s Bollywood Classics',
+      'Arijit Singh Melodies',
+      'Indie India Fresh',
+      'Sufi & Devotional',
+      'Ghazal Hits',
+    ];
+    // Pick two random seeds to search for playlists
+    const pQuery = playlistSeeds[Math.floor(Math.random() * playlistSeeds.length)] + ' ' + 
+                   playlistSeeds[Math.floor(Math.random() * playlistSeeds.length)];
 
     const trackFetchers = [
       { key: 'trending', title: 'Trending Now', fetcher: getTrending },
@@ -124,15 +138,19 @@ export function HomeScreen({ navigation }: any) {
 
     const [trackResults, fPlaylists] = await Promise.all([
       Promise.allSettled(trackFetchers.map((f) => f.fetcher())),
-      getTopPlaylists('bollywood party romantic chill', 10).catch(() => [] as Playlist[]),
+      getTopPlaylists(pQuery, 15).catch(() => [] as Playlist[]),
     ]);
+
+    // Shuffle playlists so they feel fresh each time
+    const shuffledPlaylists = fPlaylists
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 10);
 
     const newSections: TrackSection[] = [];
     let allFetchedTracks: Track[] = [];
 
     (trackResults as PromiseSettledResult<Track[]>[]).forEach((result, i) => {
       if (result.status === 'fulfilled' && result.value.length > 0) {
-        // Collect all tracks for global deduplication
         allFetchedTracks = [...allFetchedTracks, ...result.value];
       }
     });
@@ -163,7 +181,7 @@ export function HomeScreen({ navigation }: any) {
     });
 
     setSections(newSections);
-    setFeaturedPlaylists(fPlaylists);
+    setFeaturedPlaylists(shuffledPlaylists);
     setLoading(false);
   }, []);
 
@@ -220,10 +238,10 @@ export function HomeScreen({ navigation }: any) {
           <View>
             <Text style={[styles.greeting, { color: theme.onSurface }]}>Today</Text>
           </View>
-          <TouchableOpacity style={[styles.profileButton, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} onPress={() => navigation.navigate('Settings')}>
-            <View style={[styles.profileCircle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]}>
-               <MaterialIcon name="person" size={24} color={theme.onSurface} />
-            </View>
+          <TouchableOpacity style={[styles.profileButton, { backgroundColor: 'transparent' }]} onPress={() => navigation.navigate('Settings')}>
+             <LinearGradient colors={selectedAvatar.bg} style={[styles.profileCircle, { borderWidth: 1, borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]}>
+                <Text style={{ fontSize: 18 }}>{selectedAvatar.emoji}</Text>
+             </LinearGradient>
           </TouchableOpacity>
         </View>
 

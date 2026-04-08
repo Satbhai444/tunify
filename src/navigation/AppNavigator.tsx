@@ -55,19 +55,24 @@ function HomeTabs() {
             left: 0,
             right: 0,
             height: 80,
-            backgroundColor: 'transparent',
+            backgroundColor: themeMode === 'dark' ? '#16162E' : '#FFFFFF',
             borderTopWidth: 0,
-            elevation: 0,
+            elevation: 10,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
             paddingBottom: Platform.OS === 'ios' ? 25 : 10,
           },
           tabBarBackground: () => (
             <BlurView
-              intensity={90}
+              intensity={Platform.OS === 'ios' ? 40 : 100}
               tint={themeMode === 'dark' ? 'dark' : 'light'}
               style={{
                 ...StyleSheet.absoluteFillObject,
+                opacity: 0.98,
                 borderTopWidth: 1,
-                borderColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                borderColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
               }}
             />
           ),
@@ -153,7 +158,7 @@ function HomeTabs() {
       </Tab.Navigator>
 
       {currentTrack && (
-        <View style={{ position: 'absolute', bottom: 85, left: 10, right: 10 }}>
+        <View style={{ position: 'absolute', bottom: Platform.OS === 'ios' ? 100 : 90, left: 10, right: 10 }}>
            <MiniPlayer onPress={() => nav.navigate('Player')} />
         </View>
       )}

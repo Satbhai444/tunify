@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator
 import { Image } from 'expo-image';
 import { colors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
+import { LinearGradient } from 'expo-linear-gradient';
 import { usePlayerStore } from '../stores';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -104,12 +105,22 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
 
       <View style={styles.content}>
         {/* Album Art */}
-        <Image
-          source={{ uri: currentTrack.artwork }}
-          style={styles.artwork}
-          contentFit="cover"
-          transition={200}
-        />
+        <View style={styles.artworkContainer}>
+          <Image
+            source={{ uri: currentTrack.artwork }}
+            style={styles.artwork}
+            contentFit="cover"
+            transition={200}
+          />
+          {isPlaying && (
+            <LinearGradient
+              colors={['rgba(255,255,255,0.2)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          )}
+        </View>
 
         {/* Track Info */}
         <View style={styles.info}>
@@ -161,11 +172,12 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 80,
-    left: spacing.md,
-    right: spacing.md,
-    backgroundColor: 'rgba(38,38,38,0.95)',
-    borderRadius: radii.md,
+    left: 8,
+    right: 8,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
     elevation: 10,
     shadowColor: '#000',
@@ -187,10 +199,15 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 12,
   },
-  artwork: {
+  artworkContainer: {
     width: 44,
     height: 44,
-    borderRadius: radii.sm,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  artwork: {
+    width: '100%',
+    height: '100%',
   },
   info: {
     flex: 1,

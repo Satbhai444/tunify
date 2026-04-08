@@ -17,9 +17,10 @@ import { useLibraryStore, usePlayerStore, useSettingsStore } from '../stores';
 import { Track } from '../types';
 
 export function HistoryScreen({ navigation }: any) {
-  const recentlyPlayed = useLibraryStore((s) => s.recentlyPlayed);
+   const recentlyPlayed = useLibraryStore((s) => s.recentlyPlayed);
   const clearRecentlyPlayed = useLibraryStore((s) => s.clearRecentlyPlayed);
   const play = usePlayerStore((s) => s.play);
+  const currentTrackId = usePlayerStore((s) => s.currentTrack?.id);
   
   const { themeMode } = useSettingsStore();
   const theme = themeMode === 'dark' ? darkColors : lightColors;
@@ -32,7 +33,7 @@ export function HistoryScreen({ navigation }: any) {
   };
 
   const renderTrack = ({ item, index }: { item: Track; index: number }) => {
-    const isActive = usePlayerStore((s) => s.currentTrack?.id === item.id);
+    const isActive = currentTrackId === item.id;
     return (
       <TouchableOpacity
         style={styles.trackRow}

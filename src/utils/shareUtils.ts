@@ -21,7 +21,11 @@ export function getSongLink(track: Track): string {
 export async function shareSong(track: Track) {
   const link = getSongLink(track);
   await Share.share({
-    message: `🎵 Listen to "${track.title}" by ${track.artist} on Tunify!\n\n🔗 ${link}`,
+    title: track.title,
+    message: `🎵 Listen to "${track.title}" on Tunify`,
+    url: link, // Crucial for OS-level link recognition
+  }, {
+    dialogTitle: 'Share this song',
   });
 }
 
@@ -41,7 +45,9 @@ Listen on Tunify:
 🔗 ${link}`;
 
   await Share.share({
-    message: card,
+    title: `Lyric from ${track.title}`,
+    message: `"${lyricText}"\n\n🎵 ${track.title} by ${track.artist}`,
+    url: link,
   });
 }
 
@@ -51,7 +57,9 @@ Listen on Tunify:
 export async function sharePlaylist(title: string, trackCount: number, playlistId?: string) {
   const link = playlistId ? `${WEB_DOMAIN}/playlist/${encodeURIComponent(playlistId)}` : '';
   await Share.share({
-    message: `🎶 Check out the playlist "${title}" (${trackCount} songs) on Tunify!${link ? '\n\n🔗 ' + link : ''}`,
+    title: title,
+    message: `🎶 Check out "${title}" (${trackCount} songs) on Tunify`,
+    url: link || undefined,
   });
 }
 

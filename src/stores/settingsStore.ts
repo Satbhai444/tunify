@@ -20,6 +20,10 @@ export const AVATAR_OPTIONS: { id: string; emoji: string; bg: [string, string] }
   { id: 'av10', emoji: '⚡', bg: ['#F59E0B', '#D97706'] },
   { id: 'av11', emoji: '🌸', bg: ['#F472B6', '#DB2777'] },
   { id: 'av12', emoji: '🎮', bg: ['#10B981', '#047857'] },
+  { id: 'av13', emoji: '🚀', bg: ['#2563EB', '#1D4ED8'] },
+  { id: 'av14', emoji: '🌈', bg: ['#A855F7', '#D946EF'] },
+  { id: 'av15', emoji: '👑', bg: ['#FACC15', '#EAB308'] },
+  { id: 'av16', emoji: '💎', bg: ['#38BDF8', '#0EA5E9'] },
 ];
 
 export interface SettingsState {
@@ -45,6 +49,8 @@ export interface SettingsState {
   userDob: string;
   userGender: string;
   userLocation: string;
+  userGenre: string;
+  userCountry: string;
   avatarId: string; // references AVATAR_OPTIONS id
 
   // Actions
@@ -65,6 +71,8 @@ export interface SettingsState {
   setUserDob: (dob: string) => void;
   setUserGender: (gender: string) => void;
   setUserLocation: (location: string) => void;
+  setUserGenre: (genre: string) => void;
+  setUserCountry: (country: string) => void;
   setAvatarId: (id: string) => void;
   loadSettings: () => Promise<void>;
   resetSettings: () => Promise<void>;
@@ -96,6 +104,8 @@ const DEFAULTS = {
   userDob: '',
   userGender: '',
   userLocation: '',
+  userGenre: '',
+  userCountry: '',
   avatarId: 'av1',
 };
 
@@ -119,6 +129,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setUserDob: (dob) => { set({ userDob: dob }); persist({ userDob: dob }); },
   setUserGender: (gender) => { set({ userGender: gender }); persist({ userGender: gender }); },
   setUserLocation: (location) => { set({ userLocation: location }); persist({ userLocation: location }); },
+  setUserGenre: (genre) => { set({ userGenre: genre }); persist({ userGenre: genre }); },
+  setUserCountry: (country) => { set({ userCountry: country }); persist({ userCountry: country }); },
   setAvatarId: (id) => { set({ avatarId: id }); persist({ avatarId: id }); },
 
   loadSettings: async () => {
@@ -144,6 +156,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           userDob: d.userDob ?? DEFAULTS.userDob,
           userGender: d.userGender ?? DEFAULTS.userGender,
           userLocation: d.userLocation ?? DEFAULTS.userLocation,
+          userGenre: d.userGenre ?? DEFAULTS.userGenre,
+          userCountry: d.userCountry ?? DEFAULTS.userCountry,
           avatarId: d.avatarId ?? DEFAULTS.avatarId,
         });
       }

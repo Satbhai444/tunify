@@ -34,10 +34,19 @@ async function setCache<T>(key: string, data: T): Promise<void> {
 
 export function deduplicateTracks(tracks: Track[]): Track[] {
   const seen = new Map<string, Track>();
+  const junkKeywords = ['release', 'video', 'teaser', 'full song', 'official', 'lyric'];
+
   for (const track of tracks) {
-    if (!track.title || track.title.toLowerCase().includes('release')) continue; // Filter out low-quality results
+    if (!track.title || !track.url) continue;
+
+    // Filter out junk results based on title content
+    const lowerTitle = track.title.toLowerCase();
+    const isJunk = junkKeywords.some(keyword => lowerTitle.includes(keyword));
+    if (isJunk) continue;
+
     const key = `${track.title.toLowerCase()}_${track.artist.toLowerCase()}`;
     const existing = seen.get(key);
+
     // Prefer JioSaavn (full songs) over Deezer (30s previews)
     if (!existing || (track.source === 'jiosaavn' && existing.source === 'deezer')) {
       seen.set(key, track);

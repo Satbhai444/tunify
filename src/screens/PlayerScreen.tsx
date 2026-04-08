@@ -96,20 +96,21 @@ export function PlayerScreen({ navigation }: any) {
     if (isPlaying) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(playGlow, { toValue: 0.8, duration: 1200, useNativeDriver: true }),
-          Animated.timing(playGlow, { toValue: 0.3, duration: 1200, useNativeDriver: true }),
+          Animated.timing(playGlow, { toValue: 1, duration: 1500, useNativeDriver: true }),
+          Animated.timing(playGlow, { toValue: 0.2, duration: 1500, useNativeDriver: true }),
         ])
       ).start();
     } else {
-      playGlow.setValue(0.4);
+      Animated.timing(playGlow, { toValue: 0.4, duration: 500, useNativeDriver: true }).start();
     }
   }, [isPlaying]);
 
   // ─── Animations for Artwork ───
   useEffect(() => {
     Animated.spring(artScale, {
-      toValue: isPlaying ? 1 : 0.85,
-      friction: 8,
+      toValue: isPlaying ? 1 : 0.8,
+      friction: 6,
+      tension: 40,
       useNativeDriver: true,
     }).start();
   }, [isPlaying]);
@@ -202,9 +203,16 @@ export function PlayerScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        decelerationRate="normal"
+      >
         
-        {/* Centered Artwork */}
+        {/* Main Player UI (First Page) */}
+        <View style={styles.mainPlayerPage}>
+          {/* Centered Artwork */}
         <View style={styles.artworkWrapper}>
           <Animated.View style={[styles.artContainer, { transform: [{ scale: artScale }], shadowColor: theme.primary }]}>
             <Image
@@ -261,8 +269,21 @@ export function PlayerScreen({ navigation }: any) {
             </TouchableOpacity>
 
             <Animated.View style={{ transform: [{ scale: playBtnScale }] }}>
-              <TouchableOpacity style={styles.playButton} onPress={handlePlayPause}>
-                <Animated.View style={[styles.playGlow, { backgroundColor: theme.primary, opacity: playGlow }]} />
+              <TouchableOpacity
+                style={styles.playButton}
+                onPress={handlePlayPause}
+                activeOpacity={0.9}
+              >
+                <Animated.View 
+                  style={[
+                    styles.playGlow, 
+                    { 
+                      backgroundColor: theme.primary, 
+                      opacity: playGlow,
+                      transform: [{ scale: Animated.multiply(playGlow, 1.2) }] 
+                    }
+                  ]} 
+                />
                 <LinearGradient colors={themeMode === 'dark' ? ['#7B61FF', '#4F39CC'] : ['#6366F1', '#4F46E5']} style={styles.playGradient}>
                   {isBuffering ? (
                     <ActivityIndicator color="#FFF" />
@@ -286,6 +307,9 @@ export function PlayerScreen({ navigation }: any) {
             </TouchableOpacity>
           </BlurView>
         </View>
+        </View> {/* End of Main Player Page */}
+
+        {/* ═══════ Extended Metadata Cards ═══════ */}
 
         {/* Lyrics Snippet */}
         <TouchableOpacity style={styles.lyricsCard} onPress={() => setLyricsModalVisible(true)}>
@@ -312,7 +336,71 @@ export function PlayerScreen({ navigation }: any) {
            </BlurView>
         </TouchableOpacity>
 
-        <View style={{ height: 100 }} />
+        {/* About the Artist Card */}
+        {artistInfo && (
+          <TouchableOpacity 
+            style={[styles.artistCard, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]} 
+            onPress={() => navigation.navigate('ArtistDetail', { artistId: currentTrack.artistId, artistName: artistInfo.name, artistImage: artistInfo.image || currentTrack.artwork })}
+            activeOpacity={0.9}
+          >
+            <Image source={{ uri: artistInfo.image || currentTrack.artwork }} style={styles.artistCardHeaderBg} blurRadius={10} />
+            <LinearGradient colors={['transparent', themeMode === 'dark' ? '#1E1E2E' : '#FFFFFF']} style={styles.artistCardGradient} />
+            
+            <View style={styles.artistCardContent}>
+              <Text style={[styles.artistCardLabel, { color: theme.onSurfaceVariant }]}>ABOUT THE ARTIST</Text>
+              
+              <View style={styles.artistCardProfile}>
+                <Image source={{ uri: artistInfo.image || currentTrack.artwork }} style={styles.artistCardAvatar} />
+                <View style={styles.artistCardTitleBox}>
+                  <Text style={[styles.artistCardName, { color: theme.onSurface }]} numberOfLines={1}>{artistInfo.name}</Text>
+                  {artistInfo.listeners ? (
+                    <Text style={[styles.artistCardListeners, { color: theme.primary }]}>
+                      {parseInt(artistInfo.listeners).toLocaleString()} monthly listeners
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {artistInfo.bio ? (
+                <Text style={[styles.artistCardBio, { color: theme.onSurfaceVariant }]} numberOfLines={4}>
+                  {artistInfo.bio.replace(/<a href=(.*?)>(.*?)<\/a>/g, '').replace(/<a.*?>(.*?)<\/a>/g, '')}
+                </Text>
+              ) : null}
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Credits Card */}
+        <View style={[styles.creditsCard, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
+           <Text style={[styles.creditsHeader, { color: theme.onSurface }]}>Credits</Text>
+           
+           <View style={styles.creditRow}>
+              <View>
+                 <Text style={[styles.creditRole, { color: theme.onSurfaceVariant }]}>Main Artist</Text>
+                 <Text style={[styles.creditName, { color: theme.onSurface }]}>{currentTrack.artist}</Text>
+              </View>
+           </View>
+
+           {currentTrack.album ? (
+           <View style={styles.creditRow}>
+              <View>
+                 <Text style={[styles.creditRole, { color: theme.onSurfaceVariant }]}>Album / Project</Text>
+                 <Text style={[styles.creditName, { color: theme.onSurface }]}>{currentTrack.album}</Text>
+              </View>
+           </View>
+           ) : null}
+
+           <View style={styles.creditRow}>
+              <View>
+                 <Text style={[styles.creditRole, { color: theme.onSurfaceVariant }]}>Data Source</Text>
+                 <Text style={[styles.creditName, { color: theme.onSurface }]}>
+                    {currentTrack.source === 'jiosaavn' ? 'JioSaavn API (HQ)' : 'Deezer API'}
+                 </Text>
+              </View>
+           </View>
+        </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* ═══════ Modals ═══════ */}
@@ -416,4 +504,27 @@ const styles = StyleSheet.create({
   lyricShareRow: { position: 'absolute', bottom: 60, left: 0, right: 0, alignItems: 'center' },
   shareLyricBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 30, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10 },
   shareLyricTxt: { color: '#FFF', fontWeight: '800', fontSize: 16 },
+  
+  // New Styles for Scroll Layout
+  mainPlayerPage: { minHeight: SCREEN_HEIGHT - 160, justifyContent: 'space-between', paddingBottom: 20 },
+  
+  // Artist Card
+  artistCard: { borderRadius: 32, overflow: 'hidden', marginBottom: 40, minHeight: 220, elevation: 5, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 15 },
+  artistCardHeaderBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', opacity: 0.4 },
+  artistCardGradient: { ...StyleSheet.absoluteFillObject },
+  artistCardContent: { padding: 24, flex: 1, justifyContent: 'flex-end' },
+  artistCardLabel: { ...typography.labelLg, fontWeight: '800', letterSpacing: 2, marginBottom: 20 },
+  artistCardProfile: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  artistCardAvatar: { width: 64, height: 64, borderRadius: 32, marginRight: 16 },
+  artistCardTitleBox: { flex: 1, justifyContent: 'center' },
+  artistCardName: { ...typography.headlineSm, fontWeight: '800' },
+  artistCardListeners: { ...typography.labelMd, fontWeight: '700', marginTop: 4 },
+  artistCardBio: { ...typography.bodyMd, lineHeight: 22 },
+
+  // Credits Card
+  creditsCard: { borderRadius: 32, padding: 24, marginBottom: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  creditsHeader: { ...typography.titleLg, fontWeight: '800', marginBottom: 24 },
+  creditRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  creditRole: { ...typography.labelMd, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 },
+  creditName: { ...typography.titleMd, fontWeight: '700' },
 });

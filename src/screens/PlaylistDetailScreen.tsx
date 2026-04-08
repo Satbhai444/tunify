@@ -18,6 +18,7 @@ import { colors, darkColors, lightColors, typography, spacing } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { usePlayerStore, useLibraryStore, useSettingsStore } from '../stores';
 import { sharePlaylist } from '../utils/shareUtils';
+import { haptics } from '../utils/platform';
 import type { Track } from '../types';
 import { getPlaylistDetails } from '../api';
 
@@ -86,8 +87,10 @@ export function PlaylistDetailScreen({ route, navigation }: any) {
 
   const handleShuffle = () => {
     if (tracks.length > 0) {
+      haptics.impact('medium');
       const shuffled = [...tracks].sort(() => Math.random() - 0.5);
       play(shuffled[0], shuffled);
+      showToast('Shuffling Playlist');
       navigation.navigate('Player');
     }
   };

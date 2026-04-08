@@ -16,7 +16,7 @@ import { colors, darkColors, lightColors, typography, spacing, radii } from '../
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { usePlayerStore, useSettingsStore } from '../stores';
-import { getArtistDetails } from '../api/musicService';
+import { getArtistDetails, searchSongs } from '../api/musicService';
 import { Track, Artist } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -35,18 +35,39 @@ export function ArtistDetailScreen({ route, navigation }: any) {
   useEffect(() => {
     (async () => {
       try {
-        const data = await getArtistDetails(artistId);
-        if (data) {
-          setArtist(data.artist);
-          setTopSongs(data.topSongs);
+        let artistData = null;
+        let songs: Track[] = [];
+
+        // 1. Attempt standard Artist API fetch using artistId first
+        if (artistId) {
+          const res = await getArtistDetails(artistId);
+          if (res) {
+            artistData = res.artist;
+            songs = res.topSongs;
+          }
         }
+
+        // 2. If no songs were found (or no artistId provided), fallback to searching by name
+        if (songs.length === 0 && (artistName || artistData?.name)) {
+          const fallbackSongs = await searchSongs(artistName || artistData?.name || '');
+          // Make sure we only get songs from this artist
+          songs = fallbackSongs.filter((t: Track) => t.artist.toLowerCase().includes((artistName || artistData?.name || '').toLowerCase()));
+          
+          if (songs.length === 0) {
+            // Very relaxed filter if exact match failed
+            songs = fallbackSongs; 
+          }
+        }
+
+        if (artistData) setArtist(artistData);
+        setTopSongs(songs);
       } catch (e) {
         console.warn('Artist fetch error:', e);
       } finally {
         setLoading(false);
       }
     })();
-  }, [artistId]);
+  }, [artistId, artistName]);
 
   const displayName = artist?.name || artistName || 'Artist';
   const displayImage = artist?.image || artistImage || '';
