@@ -89,6 +89,29 @@ function startExpoPositionTracking() {
   }, 500);
 }
 
+function startTrackPlayerPositionTracking() {
+  if (positionTimer) clearInterval(positionTimer);
+  positionTimer = setInterval(async () => {
+    if (!isTrackPlayerAvailable) return;
+    try {
+      const pbState = await TrackPlayer.getPlaybackState();
+      // Only poll if we are actually playing
+      if (pbState.state !== RNTPState.Playing) return;
+
+      const pos = await TrackPlayer.getPosition();
+      const dur = await TrackPlayer.getDuration();
+      const store = usePlayerStore.getState();
+      
+      if (Math.abs(pos - store.position) > 0.3) {
+        usePlayerStore.setState({ position: pos });
+      }
+      if (dur > 0 && Math.abs(dur - store.duration) > 1) {
+        usePlayerStore.setState({ duration: dur });
+      }
+    } catch {}
+  }, 500);
+}
+
 async function loadAndPlayWithExpoAudio(track: Track) {
   if (!createAudioPlayer) return;
   isTransitioning = true;
@@ -191,18 +214,28 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             Capability.Play, Capability.Pause,
             Capability.SkipToNext, Capability.SkipToPrevious,
             Capability.Stop, Capability.SeekTo,
+            Capability.JumpForward, Capability.JumpBackward,
           ],
           compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
+          notificationCapabilities: [
+            Capability.Play, Capability.Pause,
+            Capability.SkipToNext, Capability.SkipToPrevious,
+            Capability.JumpForward, Capability.JumpBackward,
+          ],
         });
 
         TrackPlayer.addEventListener(RNTPEvent.PlaybackState, (event: any) => {
+          // In RNTP v4, state can be a string or part of an object depending on the hook
+          const state = typeof event.state === 'string' ? event.state : event.state;
+          console.log('[PlayerStore] State Changed:', state);
           set({ 
-            isPlaying: event.state === RNTPState.Playing,
-            isBuffering: event.state === RNTPState.Buffering || event.state === RNTPState.Loading
+            isPlaying: state === RNTPState.Playing || state === 'playing',
+            isBuffering: state === RNTPState.Buffering || state === RNTPState.Loading || state === 'buffering' || state === 'loading'
           });
         });
 
         TrackPlayer.addEventListener(RNTPEvent.PlaybackActiveTrackChanged, (event: any) => {
+          console.log('[PlayerStore] Track Changed:', event.track?.title);
           if (event.track) {
             const track = event.track as unknown as Track;
             set({ currentTrack: track, duration: event.track.duration || 0 });
@@ -214,6 +247,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         });
 
         TrackPlayer.addEventListener(RNTPEvent.PlaybackProgressUpdated, (event: any) => {
+          // Only update if we aren't using the polling timer (or as a fallback)
           set({ position: event.position, duration: event.duration });
         });
 
@@ -293,10 +327,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         url: (t as any).localPath || t.url,
       }));
       await TrackPlayer.reset();
-      await TrackPlayer.add(tnTracks);
-      const idx = tnTracks.findIndex(t => t.id === track.id);
-      if (idx > 0) await TrackPlayer.skip(idx);
-      await TrackPlayer.play();
+      if (idx >= 0) {
+        await TrackPlayer.skip(idx);
+      }
+      setTimeout(async () => {
+        await TrackPlayer.play();
+      }, 200);
+      set({ isPlaying: true, isBuffering: false }); // Eager UI update
+      startTrackPlayerPositionTracking();
     } else {
       // expo-audio fallback (Expo Go)
       await loadAndPlayWithExpoAudio(track);
@@ -304,12 +342,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   togglePlayPause: async () => {
+    console.log('[PlayerStore] togglePlayPause hit');
     if (isTrackPlayerAvailable) {
-      const pbState = await TrackPlayer.getPlaybackState();
-      if (pbState.state === RNTPState.Playing) {
-        await TrackPlayer.pause();
-      } else {
-        await TrackPlayer.play();
+      try {
+        const pbStateInner = await TrackPlayer.getPlaybackState();
+        const stateStr = pbStateInner.state === RNTPState.Playing ? 'Playing' : 'Paused/Other';
+        console.log('[PlayerStore] Native State:', stateStr, pbStateInner.state);
+        
+        if (pbStateInner.state === RNTPState.Playing || pbStateInner.state === 'playing') {
+          await TrackPlayer.pause();
+          set({ isPlaying: false }); // Eager UI update
+          if (positionTimer) { clearInterval(positionTimer); positionTimer = null; }
+        } else {
+          await TrackPlayer.play();
+          set({ isPlaying: true }); // Eager UI update
+          startTrackPlayerPositionTracking();
+        }
+      } catch (e) {
+        console.error('[PlayerStore] togglePlayPause Error:', e);
       }
     } else if (expoPlayer) {
       if (expoPlayer.playing) {
@@ -325,12 +375,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   skipNext: async () => {
+    console.log('[PlayerStore] skipNext hit');
     if (isTransitioning) return;
     const { queue, currentTrack, repeatMode } = get();
     const idx = queue.findIndex(t => t.id === currentTrack?.id);
     
     if (isTrackPlayerAvailable) {
-      await TrackPlayer.skipToNext();
+      try {
+        await TrackPlayer.skipToNext();
+      } catch (e) {
+        console.error('[PlayerStore] skipNext Error:', e);
+      }
     } else {
       let next: Track | null = null;
       if (idx >= 0 && idx < queue.length - 1) next = queue[idx + 1];
@@ -345,14 +400,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   skipPrevious: async () => {
+    console.log('[PlayerStore] skipPrevious hit');
     if (isTransitioning) return;
     const { queue, currentTrack, position } = get();
     const idx = queue.findIndex(t => t.id === currentTrack?.id);
 
     if (isTrackPlayerAvailable) {
-      const pos = await TrackPlayer.getPosition();
-      if (pos > 3) await TrackPlayer.seekTo(0);
-      else await TrackPlayer.skipToPrevious();
+      try {
+        const pos = await TrackPlayer.getPosition();
+        if (pos > 3) await TrackPlayer.seekTo(0);
+        else await TrackPlayer.skipToPrevious();
+      } catch (e) {
+        console.error('[PlayerStore] skipPrevious Error:', e);
+      }
     } else {
       if (position > 3 && expoPlayer) {
         try { await expoPlayer.seekTo(0); set({ position: 0 }); } catch {}

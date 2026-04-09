@@ -98,13 +98,10 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.95}>
-      {/* Progress line */}
       <View style={styles.progressBar}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
-
       <View style={styles.content}>
-        {/* Album Art */}
         <View style={styles.artworkContainer}>
           <Image
             source={{ uri: currentTrack.artwork }}
@@ -121,21 +118,17 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
             />
           )}
         </View>
-
-        {/* Track Info */}
         <View style={styles.info}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {isPlaying && <WaveformBars isPlaying={isPlaying} />}
             <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>
-              {currentTrack.title}
+              {String(currentTrack.title)}
             </Text>
           </View>
           <Text style={styles.artist} numberOfLines={1}>
-            {currentTrack.artist}
+            {String(currentTrack.artist)}
           </Text>
         </View>
-
-        {/* Controls */}
         <View style={styles.controls}>
           <TouchableOpacity
             onPress={(e) => {

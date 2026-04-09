@@ -158,7 +158,7 @@ function HomeTabs() {
       </Tab.Navigator>
 
       {!!currentTrack && (
-        <View style={{ position: 'absolute', bottom: Platform.OS === 'ios' ? 100 : 90, left: 10, right: 10 }}>
+        <View style={{ position: 'absolute', bottom: Platform.OS === 'ios' ? 170 : 160, left: 10, right: 10, zIndex: 9999 }}>
            <MiniPlayer onPress={() => nav.navigate('Player')} />
         </View>
       )}
