@@ -337,7 +337,7 @@ export function PlayerScreen({ navigation }: any) {
         </TouchableOpacity>
 
         {/* About the Artist Card */}
-        {artistInfo && (
+        {!!artistInfo && (
           <TouchableOpacity 
             style={[styles.artistCard, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]} 
             onPress={() => navigation.navigate('ArtistDetail', { artistId: currentTrack.artistId, artistName: artistInfo.name, artistImage: artistInfo.image || currentTrack.artwork })}

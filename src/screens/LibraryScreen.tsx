@@ -193,7 +193,7 @@ export function LibraryScreen({ navigation }: any) {
           </>
         }
         renderItem={({ item }) => (
-          <GlassLibraryItem item={item} onPress={item.onPress} onLongPress={item.onLongPress} themeMode={themeMode} />
+          <GlassLibraryItem item={item} onPress={item.onPress} onLongPress={'onLongPress' in item ? (item as any).onLongPress : undefined} themeMode={themeMode} />
         )}
         ListFooterComponent={<MadeInIndiaFooter />}
       />
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   filterRow: { flexDirection: 'row', gap: 10, paddingRight: 40 },
   chip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   chipText: { ...typography.labelLg, color: '#A5A5C7', fontWeight: '600' },
-  listContent: { paddingHorizontal: spacing.xl, paddingBottom: 120 },
+  listContent: { paddingHorizontal: spacing.xl, paddingBottom: 160 },
   sectionTitle: { ...typography.headlineSm, fontWeight: '800', marginBottom: 16 },
   recentsSection: { marginTop: 12 },
   recentItem: { width: 110, marginRight: 16 },
@@ -259,6 +259,6 @@ const styles = StyleSheet.create({
   itemInfo: { flex: 1 },
   itemTitle: { ...typography.titleMd, fontWeight: '700' },
   itemSubtitle: { ...typography.bodySm, marginTop: 4 },
-  fab: { position: 'absolute', bottom: 110, right: 24, width: 60, height: 60, borderRadius: 30, overflow: 'hidden', elevation: 8, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16 },
+  fab: { position: 'absolute', bottom: 170, right: 24, width: 60, height: 60, borderRadius: 30, overflow: 'hidden', elevation: 8, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16 },
   fabBlur: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
 });

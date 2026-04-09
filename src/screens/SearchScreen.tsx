@@ -175,7 +175,7 @@ export function SearchScreen({ navigation }: any) {
               data={results.tracks}
               keyExtractor={(item) => item.id}
               renderItem={renderTrackItem}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 180 }}
               showsVerticalScrollIndicator={false}
             />
           ) : activeTab === 'artists' ? (
@@ -197,7 +197,7 @@ export function SearchScreen({ navigation }: any) {
                   </BlurView>
                 </TouchableOpacity>
               )}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 180 }}
               showsVerticalScrollIndicator={false}
             />
           ) : (
@@ -219,7 +219,7 @@ export function SearchScreen({ navigation }: any) {
                   </BlurView>
                 </TouchableOpacity>
               )}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 180 }}
               showsVerticalScrollIndicator={false}
             />
           )}
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   pageTitle: { ...typography.displaySm, fontWeight: '900', marginBottom: 20 },
   searchBarWrapper: { flexDirection: 'row', alignItems: 'center', height: 56, borderRadius: 16, paddingHorizontal: 16, borderWidth: 1 },
   searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '600' },
-  browseContent: { paddingHorizontal: 20, paddingBottom: 120 },
+  browseContent: { paddingHorizontal: 20, paddingBottom: 180 },
   section: { marginBottom: 30 },
   sectionTitle: { ...typography.titleMd, fontWeight: '800', marginBottom: 16, letterSpacing: 0.5 },
   recentPill: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },

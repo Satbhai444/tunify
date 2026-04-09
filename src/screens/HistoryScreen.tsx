@@ -113,7 +113,7 @@ export function HistoryScreen({ navigation }: any) {
           data={recentlyPlayed}
           keyExtractor={(item, i) => `${item.id}_${i}`}
           renderItem={renderTrack}
-          contentContainerStyle={{ paddingBottom: 120, paddingTop: 10 }}
+          contentContainerStyle={{ paddingBottom: 160, paddingTop: 10 }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <View style={styles.statsRow}>

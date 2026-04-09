@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radii } from '../theme';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
+import { Skeleton, TrackItemSkeleton, MixCardSkeleton } from '../components/SkeletonLoader';
 import { usePlayerStore, useLibraryStore } from '../stores';
 import { searchSongs, getCuratedSection, getTrending, getDeezerChart } from '../api/musicService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -196,9 +197,28 @@ export function DiscoverScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[typography.bodyMd, { color: colors.onSurfaceVariant, marginTop: 16 }]}>Curating your feed...</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient
+          colors={['#1e1e1e', '#121212', '#000000']}
+          style={StyleSheet.absoluteFill}
+        />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 60 }} showsVerticalScrollIndicator={false}>
+          <Skeleton width="50%" height={32} borderRadius={4} style={{ marginBottom: 24 }} />
+          
+          <View style={{ marginBottom: 32 }}>
+            <Skeleton width="40%" height={24} borderRadius={4} style={{ marginBottom: 16 }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+              {[1, 2, 3].map((i) => <MixCardSkeleton key={i} />)}
+            </ScrollView>
+          </View>
+
+          <View style={{ marginBottom: 32 }}>
+            <Skeleton width="60%" height={24} borderRadius={4} style={{ marginBottom: 16 }} />
+            <View style={{ gap: 12 }}>
+              {[1, 2, 3, 4].map((i) => <TrackItemSkeleton key={i} />)}
+            </View>
+          </View>
+        </ScrollView>
       </View>
     );
   }

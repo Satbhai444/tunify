@@ -128,7 +128,7 @@ export function LikedSongsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingBottom: 150 },
+  scrollContent: { paddingBottom: 180 },
   header: { alignItems: 'center', paddingTop: 80, paddingBottom: 30 },
   backButton: { position: 'absolute', top: 50, left: 20, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   heroIconContainer: { width: 140, height: 140, borderRadius: 70, justifyContent: 'center', alignItems: 'center', elevation: 20, overflow: 'hidden' },

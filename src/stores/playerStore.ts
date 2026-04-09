@@ -1,53 +1,64 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
 import { Track } from '../types';
-import { setupMediaControls, syncMediaPlaybackState, updateWebPositionState } from '../services/mediaControls';
-import { createWebAudioPlayer, WebAudioPlayer } from '../utils/webAudio';
+import { setupWebMediaSession, updateWebPlaybackState, updateWebPositionState } from '../services/mediaControls';
+import { createWebAudioPlayer } from '../utils/webAudio';
 
-// Platform-conditional imports: expo-audio only on native
+// ─── Audio Engine Detection ───
+// Try TrackPlayer first (native build), fall back to expo-audio (Expo Go)
+let TrackPlayer: any = null;
+let Capability: any = null;
+let RNTPEvent: any = null;
+let RNTPState: any = null;
+let RepeatMode: any = null;
+let isTrackPlayerAvailable = false;
+
 let createAudioPlayer: ((url: string) => any) | null = null;
 let setAudioModeAsync: ((mode: any) => Promise<void>) | null = null;
+let isExpoAudioAvailable = false;
 
 if (Platform.OS !== 'web') {
+  // Try TrackPlayer first
   try {
-    const expoAudio = require('expo-audio');
-    createAudioPlayer = expoAudio.createAudioPlayer;
-    setAudioModeAsync = expoAudio.setAudioModeAsync;
+    const rntp = require('react-native-track-player');
+    TrackPlayer = rntp.default;
+    Capability = rntp.Capability;
+    RNTPEvent = rntp.Event;
+    RNTPState = rntp.State;
+    RepeatMode = rntp.RepeatMode;
+    // Quick validation — if native module isn't linked, this will throw
+    if (TrackPlayer && typeof TrackPlayer.setupPlayer === 'function') {
+      isTrackPlayerAvailable = true;
+      console.log('[Player] ✅ Using react-native-track-player (Native Build)');
+    }
   } catch (e) {
-    console.warn('expo-audio not available:', e);
+    console.log('[Player] ⚠️ TrackPlayer not available, falling back to expo-audio (Expo Go mode)');
+  }
+
+  // Fallback to expo-audio if TrackPlayer not available
+  if (!isTrackPlayerAvailable) {
+    try {
+      const expoAudio = require('expo-audio');
+      createAudioPlayer = expoAudio.createAudioPlayer;
+      setAudioModeAsync = expoAudio.setAudioModeAsync;
+      isExpoAudioAvailable = true;
+      console.log('[Player] ✅ Using expo-audio (Expo Go mode)');
+    } catch (e) {
+      console.warn('[Player] ❌ expo-audio also not available:', e);
+    }
   }
 }
 
-// Unified player factory
-function createPlayer(url: string): any {
-  if (Platform.OS === 'web') {
-    return createWebAudioPlayer(url);
-  }
-  if (createAudioPlayer) {
-    return createAudioPlayer(url);
-  }
-  throw new Error('No audio player available');
-}
-
-type AudioPlayer = any;
-
-// Single shared AudioPlayer instance
-let player: AudioPlayer | null = null;
+// ─── expo-audio state ───
+let expoPlayer: any = null;
+let statusSubscription: { remove: () => void } | null = null;
 let positionTimer: ReturnType<typeof setInterval> | null = null;
 let sleepTimer: ReturnType<typeof setInterval> | null = null;
 let isTransitioning = false;
-let statusSubscription: { remove: () => void } | null = null;
+let isInitialized = false;
 
-// Next-track preloading
-let preloadedPlayer: AudioPlayer | null = null;
-let preloadedTrackId: string | null = null;
-
-// Crossfade support
-let crossfadeTimer: ReturnType<typeof setInterval> | null = null;
-let outgoingPlayer: AudioPlayer | null = null;
-
-async function configureAudio() {
-  if (Platform.OS === 'web' || !setAudioModeAsync) return;
+async function configureExpoAudio() {
+  if (!setAudioModeAsync) return;
   try {
     await setAudioModeAsync({
       playsInSilentMode: true,
@@ -55,12 +66,67 @@ async function configureAudio() {
       interruptionMode: 'doNotMix',
     });
   } catch (e) {
-    console.warn('Audio config error:', e);
+    console.warn('[ExpoAudio] Config error:', e);
   }
 }
 
-configureAudio();
+function startExpoPositionTracking() {
+  if (positionTimer) clearInterval(positionTimer);
+  positionTimer = setInterval(() => {
+    if (!expoPlayer) return;
+    try {
+      const pos = expoPlayer.currentTime ?? 0;
+      const dur = expoPlayer.duration ?? 0;
+      const store = usePlayerStore.getState();
+      if (Math.abs(pos - store.position) > 0.5) {
+        usePlayerStore.setState({ position: pos });
+        updateWebPositionState(pos, dur);
+      }
+      if (dur > 0 && dur !== store.duration) {
+        usePlayerStore.setState({ duration: dur });
+      }
+    } catch {}
+  }, 500);
+}
 
+async function loadAndPlayWithExpoAudio(track: Track) {
+  if (!createAudioPlayer) return;
+  isTransitioning = true;
+  usePlayerStore.setState({ isBuffering: true, position: 0, duration: 0 });
+
+  try {
+    // Cleanup old
+    if (statusSubscription) { try { statusSubscription.remove(); } catch {} statusSubscription = null; }
+    if (expoPlayer) { try { expoPlayer.pause(); expoPlayer.remove(); } catch {} expoPlayer = null; }
+    if (positionTimer) { clearInterval(positionTimer); positionTimer = null; }
+
+    const playUrl = (track as any).localPath || track.url;
+    expoPlayer = createAudioPlayer(playUrl);
+
+    statusSubscription = expoPlayer.addListener('playbackStatusUpdate', (status: any) => {
+      if (status.didJustFinish && !isTransitioning) {
+        usePlayerStore.getState().skipNext();
+      }
+      if (status.isBuffering !== undefined) {
+        usePlayerStore.setState({ isBuffering: status.isBuffering });
+      }
+    });
+
+    const { repeatMode } = usePlayerStore.getState();
+    expoPlayer.loop = repeatMode === 'one';
+    expoPlayer.play();
+
+    startExpoPositionTracking();
+    usePlayerStore.setState({ isPlaying: true, isBuffering: false });
+    isTransitioning = false;
+  } catch (e) {
+    console.error('[ExpoAudio] Playback error:', e);
+    usePlayerStore.setState({ isPlaying: false, isBuffering: false });
+    isTransitioning = false;
+  }
+}
+
+// ─── Store ───
 export interface PlayerState {
   currentTrack: Track | null;
   queue: Track[];
@@ -72,8 +138,9 @@ export interface PlayerState {
   repeatMode: 'off' | 'one' | 'all';
   isShuffled: boolean;
   isPlayerReady: boolean;
-  sleepTimerRemaining: number | null; // in seconds
+  sleepTimerRemaining: number | null;
 
+  initPlayer: () => Promise<void>;
   setCurrentTrack: (track: Track | null) => void;
   setQueue: (tracks: Track[]) => void;
   setIsPlaying: (playing: boolean) => void;
@@ -94,383 +161,6 @@ export interface PlayerState {
   setSleepTimer: (minutes: number | null) => void;
 }
 
-function startPositionTracking() {
-  stopPositionTracking();
-  positionTimer = setInterval(() => {
-    if (!player) return;
-    try {
-      const store = usePlayerStore.getState();
-      const pos = player.currentTime ?? 0;
-      const dur = player.duration ?? 0;
-      if (Math.abs(pos - store.position) > 0.5) {
-        usePlayerStore.setState({ position: pos });
-        // Sync position to web media session progress bar
-        updateWebPositionState(pos, dur);
-      }
-      if (dur > 0 && dur !== store.duration) {
-        usePlayerStore.setState({ duration: dur });
-      }
-      // Crossfade trigger: start fading when near end of track
-      if (dur > 0) {
-        const { useSettingsStore } = require('./settingsStore');
-        const settings = useSettingsStore.getState();
-        if (settings.crossfadeEnabled && !isTransitioning) {
-          const fadeTime = settings.crossfadeDuration || 5;
-          const remaining = dur - pos;
-          if (remaining <= fadeTime && remaining > 0.5) {
-            startCrossfade(fadeTime);
-          }
-        }
-      }
-    } catch {}
-  }, 500);
-}
-
-function stopPositionTracking() {
-  if (positionTimer) {
-    clearInterval(positionTimer);
-    positionTimer = null;
-  }
-}
-
-function cleanupPlayer() {
-  if (crossfadeTimer) {
-    clearInterval(crossfadeTimer);
-    crossfadeTimer = null;
-  }
-  if (outgoingPlayer) {
-    try { outgoingPlayer.pause(); } catch {}
-    try { outgoingPlayer.remove(); } catch {}
-    outgoingPlayer = null;
-  }
-  if (statusSubscription) {
-    try { statusSubscription.remove(); } catch {}
-    statusSubscription = null;
-  }
-  if (player) {
-    try { player.pause(); } catch {}
-    try { if (typeof player.clearLockScreenControls === 'function') player.clearLockScreenControls(); } catch {}
-    try { player.remove(); } catch {}
-    player = null;
-  }
-  stopPositionTracking();
-}
-
-function cleanupPreloadedPlayer() {
-  if (preloadedPlayer) {
-    try { preloadedPlayer.remove(); } catch {}
-    preloadedPlayer = null;
-    preloadedTrackId = null;
-  }
-}
-
-// Crossfade: gradually fade out current, fade in next
-let crossfadeStarted = false;
-function startCrossfade(fadeTime: number) {
-  if (crossfadeStarted || isTransitioning) return;
-  crossfadeStarted = true;
-
-  const { queue, currentTrack, repeatMode } = usePlayerStore.getState();
-  const idx = queue.findIndex((t) => t.id === currentTrack?.id);
-  let nextTrack: Track | null = null;
-  if (idx >= 0 && idx < queue.length - 1) {
-    nextTrack = queue[idx + 1];
-  } else if (repeatMode === 'all' && queue.length > 0) {
-    nextTrack = queue[0];
-  }
-
-  if (!nextTrack || !nextTrack.url) {
-    crossfadeStarted = false;
-    return;
-  }
-
-  isTransitioning = true;
-
-  // Move current player to outgoing
-  outgoingPlayer = player;
-  player = null;
-
-  // Create new player for next track
-  try {
-    let newPlayer: AudioPlayer;
-    if (preloadedPlayer && preloadedTrackId === nextTrack.id) {
-      newPlayer = preloadedPlayer;
-      preloadedPlayer = null;
-      preloadedTrackId = null;
-    } else {
-      cleanupPreloadedPlayer();
-      const playUrl = (nextTrack as any).localPath || nextTrack.url;
-      newPlayer = createPlayer(playUrl);
-    }
-
-    player = newPlayer;
-    player.volume = 0; // start silent
-    player.play();
-
-    // Subscribe to new player
-    if (statusSubscription) {
-      try { statusSubscription.remove(); } catch {}
-    }
-    statusSubscription = player.addListener('playbackStatusUpdate', (status: any) => {
-      if (status.didJustFinish && !isTransitioning) {
-        handleTrackEnd();
-      }
-      const store = usePlayerStore.getState();
-      if (status.playing !== undefined && status.playing !== store.isPlaying && !isTransitioning) {
-        usePlayerStore.setState({ isPlaying: status.playing });
-      }
-      if (status.isBuffering !== undefined) {
-        usePlayerStore.setState({ isBuffering: status.isBuffering });
-      }
-    });
-
-    usePlayerStore.setState({ currentTrack: nextTrack, position: 0, duration: 0 });
-
-    // Fade volumes over fadeTime
-    const steps = fadeTime * 10; // 100ms steps
-    let step = 0;
-    crossfadeTimer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      try {
-        if (player) player.volume = Math.min(1, progress);
-        if (outgoingPlayer) outgoingPlayer.volume = Math.max(0, 1 - progress);
-      } catch {}
-
-      if (step >= steps) {
-        if (crossfadeTimer) clearInterval(crossfadeTimer);
-        crossfadeTimer = null;
-        // Cleanup outgoing
-        if (outgoingPlayer) {
-          try { outgoingPlayer.pause(); } catch {}
-          try { outgoingPlayer.remove(); } catch {}
-          outgoingPlayer = null;
-        }
-        isTransitioning = false;
-        crossfadeStarted = false;
-        startPositionTracking();
-        setTimeout(preloadNextTrack, 2000);
-        // Track recently played
-        try {
-          const { useLibraryStore } = require('./libraryStore');
-          useLibraryStore.getState().addRecentlyPlayed(nextTrack!);
-        } catch {}
-      }
-    }, 100);
-  } catch (e) {
-    console.error('Crossfade error:', e);
-    isTransitioning = false;
-    crossfadeStarted = false;
-  }
-}
-
-// Preload the next track in the queue so transitions are instant
-function preloadNextTrack() {
-  const { queue, currentTrack } = usePlayerStore.getState();
-  if (!currentTrack || queue.length < 2) return;
-  const idx = queue.findIndex((t) => t.id === currentTrack.id);
-  const nextTrack = idx >= 0 && idx < queue.length - 1 ? queue[idx + 1] : null;
-  if (!nextTrack || !nextTrack.url || nextTrack.id === preloadedTrackId) return;
-  cleanupPreloadedPlayer();
-  try {
-    const playUrl = (nextTrack as any).localPath || nextTrack.url;
-    preloadedPlayer = createPlayer(playUrl);
-    preloadedTrackId = nextTrack.id;
-  } catch {}
-}
-
-async function loadAndPlay(track: Track) {
-  // Prevent re-entry
-  isTransitioning = true;
-
-  if (!track.url) {
-    console.warn('No URL for track:', track.title);
-    usePlayerStore.setState({ isPlaying: false, isBuffering: false });
-    isTransitioning = false;
-    return;
-  }
-
-  usePlayerStore.setState({ isBuffering: true, position: 0, duration: 0 });
-
-  try {
-    // Check if this track was preloaded — use preloaded player for instant switch
-    let newPlayer: AudioPlayer;
-    if (preloadedPlayer && preloadedTrackId === track.id) {
-      newPlayer = preloadedPlayer;
-      preloadedPlayer = null;
-      preloadedTrackId = null;
-    } else {
-      cleanupPreloadedPlayer();
-      const playUrl = (track as any).localPath || track.url;
-      newPlayer = createPlayer(playUrl);
-    }
-
-    // Cleanup old player AFTER creating new one (no gap)
-    cleanupPlayer();
-    player = newPlayer;
-
-    // Listen for playback status updates (handles track end via didJustFinish)
-    statusSubscription = player.addListener('playbackStatusUpdate', (status: any) => {
-      if (status.didJustFinish && !isTransitioning) {
-        handleTrackEnd();
-      }
-      // Handle media control actions from notification (next/previous track)
-      if (status.mediaAction === 'nextTrack') {
-        usePlayerStore.getState().skipNext();
-        return;
-      }
-      if (status.mediaAction === 'previousTrack') {
-        usePlayerStore.getState().skipPrevious();
-        return;
-      }
-      // Sync playing state from native player (lock screen play/pause)
-      const store = usePlayerStore.getState();
-      if (status.playing !== undefined && status.playing !== store.isPlaying && !isTransitioning) {
-        usePlayerStore.setState({ isPlaying: status.playing });
-        syncMediaPlaybackState(status.playing);
-      }
-      if (status.isBuffering !== undefined) {
-        usePlayerStore.setState({ isBuffering: status.isBuffering });
-      }
-    });
-
-    // ── Media Controls: Lock Screen + Notification + Web Media Session ──
-    setupMediaControls(player, track, {
-      onPlay: () => usePlayerStore.getState().togglePlayPause(),
-      onPause: () => usePlayerStore.getState().togglePlayPause(),
-      onNextTrack: () => usePlayerStore.getState().skipNext(),
-      onPreviousTrack: () => usePlayerStore.getState().skipPrevious(),
-      onSeekForward: () => {
-        const s = usePlayerStore.getState();
-        s.seekTo(Math.min(s.position + 10, s.duration));
-      },
-      onSeekBackward: () => {
-        const s = usePlayerStore.getState();
-        s.seekTo(Math.max(s.position - 10, 0));
-      },
-    });
-
-    // Handle repeat-one via player.loop
-    const { repeatMode } = usePlayerStore.getState();
-    player.loop = repeatMode === 'one';
-
-    player.play();
-    startPositionTracking();
-
-    usePlayerStore.setState({ isPlaying: true, isBuffering: false });
-    syncMediaPlaybackState(true);
-    isTransitioning = false;
-
-    // Start preloading the next track in background
-    setTimeout(preloadNextTrack, 2000);
-  } catch (e) {
-    console.error('Playback error:', e);
-    usePlayerStore.setState({ isPlaying: false, isBuffering: false });
-    isTransitioning = false;
-  }
-}
-
-async function handleTrackEnd() {
-  if (isTransitioning) return;
-  isTransitioning = true;
-
-  const { repeatMode, queue, currentTrack } = usePlayerStore.getState();
-
-  // repeat-one is handled by player.loop, but as fallback:
-  if (repeatMode === 'one') {
-    if (player) {
-      try {
-        await player.seekTo(0);
-        player.play();
-        usePlayerStore.setState({ position: 0, isPlaying: true });
-      } catch {}
-    }
-    isTransitioning = false;
-    return;
-  }
-
-  const idx = queue.findIndex((t) => t.id === currentTrack?.id);
-  if (idx >= 0 && idx < queue.length - 1) {
-    const next = queue[idx + 1];
-    usePlayerStore.setState({ currentTrack: next });
-    await loadAndPlay(next);
-    // Track recently played
-    try {
-      const { useLibraryStore } = require('./libraryStore');
-      useLibraryStore.getState().addRecentlyPlayed(next);
-    } catch {}
-  } else if (repeatMode === 'all' && queue.length > 0) {
-    try {
-      const first = queue[0];
-      usePlayerStore.setState({ currentTrack: first });
-      await loadAndPlay(first);
-      try {
-        const { useLibraryStore } = require('./libraryStore');
-        useLibraryStore.getState().addRecentlyPlayed(first);
-      } catch {}
-    } catch (e) {
-      console.error('Repeat all error:', e);
-      isTransitioning = false;
-    }
-  } else {
-    // Queue ended — try autoplay similar songs
-    try {
-      const { useSettingsStore } = require('./settingsStore');
-      const settings = useSettingsStore.getState();
-      if (settings.autoPlayEnabled && currentTrack) {
-        isTransitioning = false;
-        await autoPlaySimilar(currentTrack);
-        return;
-      }
-    } catch {}
-    usePlayerStore.setState({ isPlaying: false, position: 0 });
-    stopPositionTracking();
-    isTransitioning = false;
-  }
-}
-
-// Autoplay: fetch similar songs and keep playing
-async function autoPlaySimilar(track: Track) {
-  try {
-    const { getSimilarSongs, getCuratedSection } = require('../api/musicService');
-    let similar: Track[] = [];
-    // Try JioSaavn suggestions first
-    if (track.source === 'jiosaavn') {
-      similar = await getSimilarSongs(track.id, 15);
-    }
-    // Fallback: search by artist name
-    if (similar.length === 0) {
-      similar = await getCuratedSection(`${track.artist} similar songs`, 15);
-    }
-    if (similar.length > 0) {
-      // Filter out tracks already in queue
-      const { queue } = usePlayerStore.getState();
-      const queueIds = new Set(queue.map((t: Track) => t.id));
-      const newTracks = similar.filter((t: Track) => !queueIds.has(t.id));
-      if (newTracks.length > 0) {
-        // Add to queue and play first new track
-        usePlayerStore.setState((state: any) => ({
-          queue: [...state.queue, ...newTracks],
-          originalQueue: [...state.originalQueue, ...newTracks],
-        }));
-        const next = newTracks[0];
-        usePlayerStore.setState({ currentTrack: next });
-        await loadAndPlay(next);
-        try {
-          const { useLibraryStore } = require('./libraryStore');
-          useLibraryStore.getState().addRecentlyPlayed(next);
-        } catch {}
-        return;
-      }
-    }
-  } catch (e) {
-    console.error('Autoplay error:', e);
-  }
-  // Fallback: just stop
-  usePlayerStore.setState({ isPlaying: false, position: 0 });
-  stopPositionTracking();
-}
-
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,
   queue: [],
@@ -481,8 +171,66 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   repeatMode: 'off',
   isShuffled: false,
-  isPlayerReady: true,
+  isPlayerReady: false,
   sleepTimerRemaining: null,
+
+  initPlayer: async () => {
+    if (isInitialized) return;
+
+    if (Platform.OS === 'web') {
+      set({ isPlayerReady: true });
+      isInitialized = true;
+      return;
+    }
+
+    if (isTrackPlayerAvailable) {
+      try {
+        await TrackPlayer.setupPlayer({ waitForBuffer: true });
+        await TrackPlayer.updateOptions({
+          capabilities: [
+            Capability.Play, Capability.Pause,
+            Capability.SkipToNext, Capability.SkipToPrevious,
+            Capability.Stop, Capability.SeekTo,
+          ],
+          compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
+        });
+
+        TrackPlayer.addEventListener(RNTPEvent.PlaybackState, (event: any) => {
+          set({ 
+            isPlaying: event.state === RNTPState.Playing,
+            isBuffering: event.state === RNTPState.Buffering || event.state === RNTPState.Loading
+          });
+        });
+
+        TrackPlayer.addEventListener(RNTPEvent.PlaybackActiveTrackChanged, (event: any) => {
+          if (event.track) {
+            const track = event.track as unknown as Track;
+            set({ currentTrack: track, duration: event.track.duration || 0 });
+            try {
+              const { useLibraryStore } = require('./libraryStore');
+              useLibraryStore.getState().addRecentlyPlayed(track);
+            } catch {}
+          }
+        });
+
+        TrackPlayer.addEventListener(RNTPEvent.PlaybackProgressUpdated, (event: any) => {
+          set({ position: event.position, duration: event.duration });
+        });
+
+        set({ isPlayerReady: true });
+        isInitialized = true;
+      } catch (e) {
+        console.error('[TrackPlayer] Init error:', e);
+        set({ isPlayerReady: true });
+        isInitialized = true;
+      }
+    } else {
+      // expo-audio mode
+      await configureExpoAudio();
+      set({ isPlayerReady: true });
+      isInitialized = true;
+    }
+  },
 
   setCurrentTrack: (track) => set({ currentTrack: track }),
   setQueue: (tracks) => set({ queue: tracks }),
@@ -492,60 +240,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setDuration: (dur) => set({ duration: dur }),
   setPlayerReady: (ready) => set({ isPlayerReady: ready }),
 
-  toggleRepeat: () => {
+  toggleRepeat: async () => {
     const current = get().repeatMode;
     const next = current === 'off' ? 'all' : current === 'all' ? 'one' : 'off';
     set({ repeatMode: next });
-    // Update player loop property
-    if (player) {
-      player.loop = next === 'one';
+    if (isTrackPlayerAvailable) {
+      const mode = next === 'off' ? RepeatMode.Off : next === 'one' ? RepeatMode.Track : RepeatMode.Queue;
+      await TrackPlayer.setRepeatMode(mode);
+    } else if (expoPlayer) {
+      expoPlayer.loop = next === 'one';
     }
   },
 
   toggleShuffle: () => {
     const { isShuffled, queue, originalQueue, currentTrack } = get();
     if (!isShuffled) {
-      const currentId = currentTrack?.id;
-      const otherTracks = queue.filter((t) => t.id !== currentId);
-
-      // Smart Shuffle: weight songs by artist match with recently played
-      let recentArtists: string[] = [];
-      try {
-        const { useLibraryStore } = require('./libraryStore');
-        const recent = useLibraryStore.getState().recentlyPlayed || [];
-        const liked = useLibraryStore.getState().likedSongs || [];
-        const artistCounts = new Map<string, number>();
-        [...recent, ...liked].forEach((t: Track) => {
-          const a = t.artist?.split(',')[0]?.trim().toLowerCase();
-          if (a) artistCounts.set(a, (artistCounts.get(a) || 0) + 1);
-        });
-        recentArtists = [...artistCounts.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 10)
-          .map(([name]) => name);
-      } catch {}
-
-      // Score each track: higher score = more likely to be placed earlier
-      const scored = otherTracks.map((t) => {
-        let score = Math.random() * 0.4; // base randomness
-        const artistLower = t.artist?.split(',')[0]?.trim().toLowerCase() || '';
-        const matchIdx = recentArtists.indexOf(artistLower);
-        if (matchIdx >= 0) {
-          score += (10 - matchIdx) * 0.08; // boost familiar artists
-        }
-        return { track: t, score };
-      });
-
-      // Sort by score descending then add some shuffling to prevent strict ordering
-      scored.sort((a, b) => b.score - a.score);
-      // Apply light Fisher-Yates with limited swap distance for natural feel
-      const shuffled = scored.map((s) => s.track);
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const maxSwap = Math.min(i, Math.max(3, Math.floor(shuffled.length * 0.3)));
-        const j = i - Math.floor(Math.random() * maxSwap);
-        if (j >= 0) [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-
+      const shuffled = [...queue.filter(t => t.id !== currentTrack?.id)].sort(() => Math.random() - 0.5);
       const newQueue = currentTrack ? [currentTrack, ...shuffled] : shuffled;
       set({ isShuffled: true, queue: newQueue, originalQueue: queue });
     } else {
@@ -554,106 +264,132 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   play: async (track, queue) => {
-    if (isTransitioning) return;
+    const state = get();
+    if (!state.isPlayerReady) await state.initPlayer();
+
     const tracksToQueue = queue ?? [track];
     set({ currentTrack: track, queue: tracksToQueue, originalQueue: tracksToQueue, isShuffled: false });
-    await loadAndPlay(track);
+
     try {
       const { useLibraryStore } = require('./libraryStore');
       useLibraryStore.getState().addRecentlyPlayed(track);
     } catch {}
+
+    if (Platform.OS === 'web') {
+      // Web player
+      setupWebMediaSession(track, {
+        onPlay: () => get().togglePlayPause(),
+        onPause: () => get().togglePlayPause(),
+        onNextTrack: () => get().skipNext(),
+        onPreviousTrack: () => get().skipPrevious(),
+        onSeekForward: () => get().seekTo(get().position + 10),
+        onSeekBackward: () => get().seekTo(get().position - 10),
+      });
+      set({ isPlaying: true, isBuffering: false });
+    } else if (isTrackPlayerAvailable) {
+      // Native TrackPlayer
+      const tnTracks = tracksToQueue.map(t => ({
+        ...t,
+        url: (t as any).localPath || t.url,
+      }));
+      await TrackPlayer.reset();
+      await TrackPlayer.add(tnTracks);
+      const idx = tnTracks.findIndex(t => t.id === track.id);
+      if (idx > 0) await TrackPlayer.skip(idx);
+      await TrackPlayer.play();
+    } else {
+      // expo-audio fallback (Expo Go)
+      await loadAndPlayWithExpoAudio(track);
+    }
   },
 
   togglePlayPause: async () => {
-    if (!player) {
-      const track = get().currentTrack;
-      if (track) await loadAndPlay(track);
-      return;
-    }
-    try {
-      if (player.playing) {
-        player.pause();
-        set({ isPlaying: false });
-        syncMediaPlaybackState(false);
+    if (isTrackPlayerAvailable) {
+      const pbState = await TrackPlayer.getPlaybackState();
+      if (pbState.state === RNTPState.Playing) {
+        await TrackPlayer.pause();
       } else {
-        player.play();
-        set({ isPlaying: true });
-        syncMediaPlaybackState(true);
+        await TrackPlayer.play();
       }
-    } catch (e) {
-      console.error('Toggle error:', e);
+    } else if (expoPlayer) {
+      if (expoPlayer.playing) {
+        expoPlayer.pause();
+        set({ isPlaying: false });
+        updateWebPlaybackState(false);
+      } else {
+        expoPlayer.play();
+        set({ isPlaying: true });
+        updateWebPlaybackState(true);
+      }
     }
   },
 
   skipNext: async () => {
     if (isTransitioning) return;
     const { queue, currentTrack, repeatMode } = get();
-    const idx = queue.findIndex((t) => t.id === currentTrack?.id);
-    let next: Track | null = null;
-    if (idx >= 0 && idx < queue.length - 1) {
-      next = queue[idx + 1];
-    } else if (repeatMode === 'all' && queue.length > 0) {
-      next = queue[0];
-    }
-    if (next) {
-      set({ currentTrack: next });
-      await loadAndPlay(next);
-      try {
-        const { useLibraryStore } = require('./libraryStore');
-        useLibraryStore.getState().addRecentlyPlayed(next);
-      } catch {}
+    const idx = queue.findIndex(t => t.id === currentTrack?.id);
+    
+    if (isTrackPlayerAvailable) {
+      await TrackPlayer.skipToNext();
+    } else {
+      let next: Track | null = null;
+      if (idx >= 0 && idx < queue.length - 1) next = queue[idx + 1];
+      else if (repeatMode === 'all' && queue.length > 0) next = queue[0];
+      if (next) {
+        set({ currentTrack: next });
+        await loadAndPlayWithExpoAudio(next);
+      } else {
+        set({ isPlaying: false });
+      }
     }
   },
 
   skipPrevious: async () => {
     if (isTransitioning) return;
     const { queue, currentTrack, position } = get();
-    if (position > 3 && player) {
-      try {
-        await player.seekTo(0);
-        set({ position: 0 });
-      } catch {}
-      return;
-    }
-    const idx = queue.findIndex((t) => t.id === currentTrack?.id);
-    if (idx > 0) {
-      const prev = queue[idx - 1];
-      set({ currentTrack: prev });
-      await loadAndPlay(prev);
-      try {
-        const { useLibraryStore } = require('./libraryStore');
-        useLibraryStore.getState().addRecentlyPlayed(prev);
-      } catch {}
-    } else if (player) {
-      try {
-        await player.seekTo(0);
-        set({ position: 0 });
-      } catch {}
+    const idx = queue.findIndex(t => t.id === currentTrack?.id);
+
+    if (isTrackPlayerAvailable) {
+      const pos = await TrackPlayer.getPosition();
+      if (pos > 3) await TrackPlayer.seekTo(0);
+      else await TrackPlayer.skipToPrevious();
+    } else {
+      if (position > 3 && expoPlayer) {
+        try { await expoPlayer.seekTo(0); set({ position: 0 }); } catch {}
+        return;
+      }
+      if (idx > 0) {
+        const prev = queue[idx - 1];
+        set({ currentTrack: prev });
+        await loadAndPlayWithExpoAudio(prev);
+      } else if (expoPlayer) {
+        try { await expoPlayer.seekTo(0); set({ position: 0 }); } catch {}
+      }
     }
   },
 
   seekTo: async (seconds) => {
-    set({ position: seconds, isBuffering: true });
-    if (!player) return;
-    try {
-      await player.seekTo(seconds);
-      set({ isBuffering: false });
-    } catch {
-      set({ isBuffering: false });
+    set({ position: seconds });
+    if (isTrackPlayerAvailable) {
+      await TrackPlayer.seekTo(seconds);
+    } else if (expoPlayer) {
+      try { await expoPlayer.seekTo(seconds); } catch {}
     }
   },
 
   addToQueue: async (track) => {
     const { isShuffled } = get();
-    set((state) => ({
+    set(state => ({
       queue: [...state.queue, track],
       originalQueue: isShuffled ? state.originalQueue : [...state.originalQueue, track],
     }));
+    if (isTrackPlayerAvailable) {
+      await TrackPlayer.add([track]);
+    }
   },
 
   applyEqPreset: (preset) => {
-    if (!player) return;
-    // Map EQ presets to playback rate + volume adjustments.
+    if (!expoPlayer) return;
     const presets: Record<string, { rate: number; volume: number }> = {
       flat:   { rate: 1.0,  volume: 1.0 },
       bass:   { rate: 0.97, volume: 1.0 },
@@ -662,23 +398,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     };
     const cfg = presets[preset] || presets.flat;
     try {
-      player.playbackRate = cfg.rate;
-      player.volume = cfg.volume;
-    } catch (e) {
-      console.warn('EQ preset error:', e);
-    }
+      expoPlayer.playbackRate = cfg.rate;
+      expoPlayer.volume = cfg.volume;
+    } catch {}
   },
 
   setSleepTimer: (minutes) => {
-    if (sleepTimer) {
-      clearInterval(sleepTimer);
-      sleepTimer = null;
-    }
-
-    if (minutes === null) {
-      set({ sleepTimerRemaining: null });
-      return;
-    }
+    if (sleepTimer) { clearInterval(sleepTimer); sleepTimer = null; }
+    if (minutes === null) { set({ sleepTimerRemaining: null }); return; }
 
     let remaining = minutes * 60;
     set({ sleepTimerRemaining: remaining });

@@ -60,7 +60,7 @@ export function BottomSheetMenu({
             <View style={[styles.handleBar, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]} />
 
             {/* Header with track info */}
-            {(title || artwork) && (
+            {!!(title || artwork) && (
               <View style={styles.sheetHeader}>
                 {artwork && (
                   <Image source={{ uri: artwork }} style={styles.sheetArt} contentFit="cover" />
@@ -71,7 +71,7 @@ export function BottomSheetMenu({
                       {title}
                     </Text>
                   )}
-                  {subtitle && (
+                  {!!subtitle && (
                     <Text style={[styles.sheetSubtitle, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
                       {subtitle}
                     </Text>
@@ -125,7 +125,7 @@ export function BottomSheetMenu({
                     >
                       {opt.label}
                     </Text>
-                    {opt.sublabel && (
+                    {!!opt.sublabel && (
                       <Text style={[styles.optionSublabel, { color: theme.onSurfaceVariant }]}>{opt.sublabel}</Text>
                     )}
                   </View>

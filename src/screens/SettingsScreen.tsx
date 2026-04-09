@@ -53,7 +53,7 @@ function SettingItem({ icon, label, value, onPress, toggle, onToggle, themeMode 
             />
           ) : (
             <View style={styles.valueRow}>
-              {value && <Text style={[styles.settingValue, { color: theme.primary }]}>{value}</Text>}
+              {!!value && <Text style={[styles.settingValue, { color: theme.primary }]}>{value}</Text>}
               <MaterialIcon name="chevron-right" size={20} color={theme.onSurfaceVariant} />
             </View>
           )}

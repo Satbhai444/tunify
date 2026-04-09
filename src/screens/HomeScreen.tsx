@@ -7,6 +7,7 @@ import { MaterialIcon } from '../components/MaterialIcon';
 import { BottomSheetMenu } from '../components/BottomSheet';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
+import { Skeleton, TrackItemSkeleton, PlaylistCardSkeleton } from '../components/SkeletonLoader';
 import { getTrending, getPlaylistTracks, getCuratedSection, getDeezerChart, getNewReleases, getTopPlaylists, getTopArtists, getTopAlbums, getRandomNewHits, deduplicateTracks } from '../api';
 import { usePlayerStore, useLibraryStore } from '../stores';
 import { useSettingsStore, AVATAR_OPTIONS } from '../stores/settingsStore';
@@ -211,8 +212,31 @@ export function HomeScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <LinearGradient
+          colors={themeMode === 'dark' ? ['#4F39CC', '#16162E', theme.background] : ['#A5B4FC', '#FFFFFF', theme.background]}
+          style={StyleSheet.absoluteFill}
+        />
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.topBar}>
+            <Skeleton width={120} height={40} borderRadius={8} />
+            <Skeleton width={44} height={44} borderRadius={22} />
+          </View>
+          
+          <View style={{ marginVertical: 24 }}>
+            <Skeleton width={150} height={28} borderRadius={4} style={{ marginBottom: 16 }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+              {[1, 2, 3].map((i) => <PlaylistCardSkeleton key={i} />)}
+            </ScrollView>
+          </View>
+
+          <View style={{ marginVertical: 24 }}>
+            <Skeleton width={180} height={28} borderRadius={4} style={{ marginBottom: 16 }} />
+            <View style={{ gap: 12 }}>
+              {[1, 2, 3, 4, 5].map((i) => <TrackItemSkeleton key={i} />)}
+            </View>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -296,7 +320,7 @@ export function HomeScreen({ navigation }: any) {
         ))}
 
         <MadeInIndiaFooter />
-        <View style={{ height: 120 }} />
+        <View style={{ height: 160 }} />
       </ScrollView>
 
       {/* Track Menu */}

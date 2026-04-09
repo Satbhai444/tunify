@@ -157,7 +157,7 @@ function HomeTabs() {
         />
       </Tab.Navigator>
 
-      {currentTrack && (
+      {!!currentTrack && (
         <View style={{ position: 'absolute', bottom: Platform.OS === 'ios' ? 100 : 90, left: 10, right: 10 }}>
            <MiniPlayer onPress={() => nav.navigate('Player')} />
         </View>
@@ -173,6 +173,12 @@ const linking = {
 
 export function AppNavigator() {
   const navigationRef = React.useRef<any>(null);
+  const initPlayer = usePlayerStore((s) => s.initPlayer);
+
+  // Initialize TrackPlayer on startup
+  React.useEffect(() => {
+    initPlayer();
+  }, [initPlayer]);
 
   // Handle deep links (tunify://song/xxx)
   React.useEffect(() => {
