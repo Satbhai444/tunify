@@ -27,8 +27,12 @@ import {
   WelcomeScreen,
   PrivacyPolicyScreen,
   TermsScreen,
+  HowToUseScreen,
 } from '../screens';
 import { usePlayerStore, useSettingsStore } from '../stores';
+import { RatingModal } from '../components/RatingModal';
+import * as MediaLibrary from 'expo-media-library';
+import * as Notifications from 'expo-notifications';
 import { parseDeepLink } from '../utils/shareUtils';
 import { getSongDetails } from '../api';
 
@@ -174,10 +178,33 @@ const linking = {
 export function AppNavigator() {
   const navigationRef = React.useRef<any>(null);
   const initPlayer = usePlayerStore((s) => s.initPlayer);
+  const { launchCount, setLaunchCount, hasRated, setHasRated, themeMode } = useSettingsStore();
+  const [showRating, setShowRating] = React.useState(false);
 
-  // Initialize TrackPlayer on startup
+  // Initialize TrackPlayer and Startup Logic
   React.useEffect(() => {
     initPlayer();
+    
+    // Increment launch count
+    const newCount = launchCount + 1;
+    setLaunchCount(newCount);
+
+    // Request permissions on first few launches
+    if (newCount <= 2) {
+      (async () => {
+        try {
+          await MediaLibrary.requestPermissionsAsync();
+          await Notifications.requestPermissionsAsync();
+        } catch (e) {
+          console.log('Permission request failed', e);
+        }
+      })();
+    }
+
+    // Trigger rating modal if used 3+ times and hasn't rated
+    if (newCount >= 3 && !hasRated) {
+      setTimeout(() => setShowRating(true), 5000); // Show after 5s
+    }
   }, [initPlayer]);
 
   // Handle deep links (tunify://song/xxx)
@@ -249,7 +276,15 @@ export function AppNavigator() {
         <Stack.Screen name="Credits" component={CreditsScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
+        <Stack.Screen name="HowToUse" component={HowToUseScreen} />
       </Stack.Navigator>
+
+      <RatingModal 
+        visible={showRating} 
+        onClose={() => setShowRating(false)} 
+        onRate={() => { setHasRated(true); setShowRating(false); }}
+        themeMode={themeMode}
+      />
     </NavigationContainer>
   );
 }

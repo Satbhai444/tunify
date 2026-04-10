@@ -52,6 +52,8 @@ export interface SettingsState {
   userGenre: string;
   userCountry: string;
   avatarId: string; // references AVATAR_OPTIONS id
+  launchCount: number;
+  hasRated: boolean;
 
   // Actions
   setThemeMode: (mode: ThemeMode) => void;
@@ -74,6 +76,8 @@ export interface SettingsState {
   setUserGenre: (genre: string) => void;
   setUserCountry: (country: string) => void;
   setAvatarId: (id: string) => void;
+  incrementLaunchCount: () => void;
+  setHasRated: (rated: boolean) => void;
   loadSettings: () => Promise<void>;
   resetSettings: () => Promise<void>;
 }
@@ -107,6 +111,8 @@ const DEFAULTS = {
   userGenre: '',
   userCountry: '',
   avatarId: 'av1',
+  launchCount: 0,
+  hasRated: false,
 };
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -132,6 +138,13 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setUserGenre: (genre) => { set({ userGenre: genre }); persist({ userGenre: genre }); },
   setUserCountry: (country) => { set({ userCountry: country }); persist({ userCountry: country }); },
   setAvatarId: (id) => { set({ avatarId: id }); persist({ avatarId: id }); },
+  incrementLaunchCount: () => {
+    const { launchCount } = get();
+    const newVal = launchCount + 1;
+    set({ launchCount: newVal });
+    persist({ launchCount: newVal });
+  },
+  setHasRated: (rated) => { set({ hasRated: rated }); persist({ hasRated: rated }); },
 
   loadSettings: async () => {
     try {
@@ -159,6 +172,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           userGenre: d.userGenre ?? DEFAULTS.userGenre,
           userCountry: d.userCountry ?? DEFAULTS.userCountry,
           avatarId: d.avatarId ?? DEFAULTS.avatarId,
+          launchCount: d.launchCount ?? DEFAULTS.launchCount,
+          hasRated: d.hasRated ?? DEFAULTS.hasRated,
         });
       }
     } catch {}

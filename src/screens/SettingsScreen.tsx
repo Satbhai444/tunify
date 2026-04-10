@@ -98,6 +98,8 @@ export function SettingsScreen({ navigation }: any) {
   // Modal states
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [eqModalVisible, setEqModalVisible] = useState(false);
+  const [timerModalVisible, setTimerModalVisible] = useState(false);
 
   // Profile edit state
   const [editName, setEditName] = useState(settings.userName);
@@ -216,29 +218,14 @@ export function SettingsScreen({ navigation }: any) {
           icon="tune"
           label="Equalizer"
           themeMode={themeMode}
-          onPress={() => {
-            Alert.alert('Equalizer', 'Select audio profile', [
-              { text: 'Flat (Default)', onPress: () => applyEqPreset('flat') },
-              { text: 'Bass Boost', onPress: () => applyEqPreset('bass') },
-              { text: 'Crystal Treble', onPress: () => applyEqPreset('treble') },
-              { text: 'Vocal Clarity', onPress: () => applyEqPreset('vocal') },
-            ]);
-          }}
+          onPress={() => setEqModalVisible(true)}
         />
         <SettingItem
           icon="timer"
           label="Sleep Timer"
           themeMode={themeMode}
           value={sleepTimerRemaining ? `Ends in ${formatTime(sleepTimerRemaining)}` : 'Off'}
-          onPress={() => {
-            Alert.alert('Sleep Timer', 'Play music for...', [
-              { text: 'Off', onPress: () => setSleepTimer(null) },
-              { text: '5 Minutes', onPress: () => setSleepTimer(5) },
-              { text: '15 Minutes', onPress: () => setSleepTimer(15) },
-              { text: '30 Minutes', onPress: () => setSleepTimer(30) },
-              { text: '60 Minutes', onPress: () => setSleepTimer(60) },
-            ]);
-          }}
+          onPress={() => setTimerModalVisible(true)}
         />
         <SettingItem icon="compare-arrows" label="Crossfade" themeMode={themeMode} toggle={settings.crossfadeEnabled} onToggle={(v: boolean) => settings.setCrossfade(v)} />
         <SettingItem icon="auto-awesome" label="Autoplay Similar" themeMode={themeMode} toggle={settings.autoPlayEnabled} onToggle={(v: boolean) => settings.setAutoPlay(v)} />
@@ -273,6 +260,7 @@ export function SettingsScreen({ navigation }: any) {
             Alert.alert(u.isAvailable ? 'Update available' : 'Up to date', u.isAvailable ? 'A new version is ready.' : 'You are on the latest version.');
           } catch { Alert.alert('Error', 'Update check failed.'); }
         }} />
+        <SettingItem icon="help-outline" label="How to Use Tunify" themeMode={themeMode} onPress={() => navigation.navigate('HowToUse')} />
         <SettingItem icon="description" label="Terms of Service" themeMode={themeMode} onPress={() => navigation.navigate('Terms')} />
         <SettingItem icon="privacy-tip" label="Privacy Policy" themeMode={themeMode} onPress={() => navigation.navigate('PrivacyPolicy')} />
         <SettingItem icon="code" label="About Developer" themeMode={themeMode} onPress={() => setAboutModalVisible(true)} />
@@ -362,18 +350,35 @@ export function SettingsScreen({ navigation }: any) {
       {/* ═══════ About Developer Modal ═══════ */}
       <Modal visible={aboutModalVisible} animationType="slide" transparent statusBarTranslucent>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '75%' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '85%' }]}>
             <View style={[styles.modalHandle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ alignItems: 'center', paddingVertical: 30 }}>
-                <LinearGradient colors={['#7B61FF', '#4F39CC']} style={styles.devAvatar}>
-                  <Text style={{ fontSize: 40 }}>👨‍💻</Text>
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.devAvatar}>
+                  <Text style={{ fontSize: 44 }}>👨‍💻</Text>
                 </LinearGradient>
                 <Text style={[styles.devName, { color: theme.onSurface }]}>Darshan Satbhai</Text>
-                <Text style={[styles.devRole, { color: theme.primary }]}>Full-Stack Developer & Designer</Text>
-                <Text style={[styles.devBio, { color: theme.onSurfaceVariant }]}>
-                  Passionate about building beautiful mobile experiences. Tunify is crafted with love, modern design, and attention to detail. 🎶
-                </Text>
+                <Text style={[styles.devRole, { color: theme.primary }]}>Master of Code & Aesthetics</Text>
+                
+                <View style={[styles.praiseSection, { backgroundColor: themeMode === 'dark' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(99, 102, 241, 0.05)' }]}>
+                  <Text style={[styles.praiseTitle, { color: theme.primary }]}>WAH DEVELOPER WAH! 🚀</Text>
+                  <Text style={[styles.devBio, { color: theme.onSurface }]}>
+                    Building an app like **Tunify** requires more than just code; it requires pure passion, thousands of hours of dedication, and an eye for perfection. 
+                    Darshan has meticulously crafted every animation, every glass effect, and every line of logic to ensure you get the most premium music experience possible.
+                  </Text>
+                </View>
+
+                <View style={[styles.contactCard, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
+                  <Text style={[styles.inputLabel, { color: theme.primary, marginTop: 0 }]}>GET IN TOUCH</Text>
+                  <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('mailto:darshansatbhai38@gmail.com')}>
+                    <MaterialIcon name="email" size={20} color={theme.onSurfaceVariant} />
+                    <Text style={[styles.contactText, { color: theme.onSurface }]}>darshansatbhai38@gmail.com</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('tel:+916351015778')}>
+                    <MaterialIcon name="call" size={20} color={theme.onSurfaceVariant} />
+                    <Text style={[styles.contactText, { color: theme.onSurface }]}>+91 6351015778</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={styles.devLinks}>
                   <TouchableOpacity style={[styles.devLinkBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} onPress={() => Linking.openURL('https://daarshannexaa.in')}>
@@ -386,12 +391,75 @@ export function SettingsScreen({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.devVersion, { color: theme.onSurfaceVariant }]}>Tunify v1.2.0 • Built with React Native & Expo</Text>
+                <Text style={[styles.devVersion, { color: theme.onSurfaceVariant }]}>Tunify v1.2.0 • Premium Edition</Text>
               </View>
             </ScrollView>
 
             <TouchableOpacity style={[styles.modalCancelBtn, { width: '100%', marginBottom: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setAboutModalVisible(false)}>
               <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════ Equalizer Modal ═══════ */}
+      <Modal visible={eqModalVisible} animationType="slide" transparent statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={[styles.modalHandle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
+            <Text style={[styles.modalTitle, { color: theme.onSurface }]}>Equalizer</Text>
+            <View style={styles.eqGrid}>
+              {[
+                { id: 'flat', label: 'Flat', icon: 'linear-scale' },
+                { id: 'bass', label: 'Bass Boost', icon: 'speaker' },
+                { id: 'treble', label: 'Crystal Treble', icon: 'high-quality' },
+                { id: 'vocal', label: 'Vocal Clarity', icon: 'mic-external-on' },
+              ].map((eq) => (
+                <TouchableOpacity
+                  key={eq.id}
+                  style={[styles.eqItem, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
+                  onPress={() => { applyEqPreset(eq.id as any); setEqModalVisible(false); }}
+                >
+                  <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.eqIcon}>
+                    <MaterialIcon name={eq.icon as any} color="#FFF" size={24} />
+                  </LinearGradient>
+                  <Text style={[styles.eqLabel, { color: theme.onSurface }]}>{eq.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setEqModalVisible(false)}>
+              <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════ Sleep Timer Modal ═══════ */}
+      <Modal visible={timerModalVisible} animationType="slide" transparent statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={[styles.modalHandle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
+            <Text style={[styles.modalTitle, { color: theme.onSurface }]}>Sleep Timer</Text>
+            <View style={styles.eqGrid}>
+              {[
+                { val: null, label: 'Off', icon: 'timer-off' },
+                { val: 5, label: '5 Min', icon: 'timer-5' },
+                { val: 15, label: '15 Min', icon: 'timer-10' },
+                { val: 30, label: '30 Min', icon: 'timer-3' },
+                { val: 60, label: '60 Min', icon: 'timer' },
+              ].map((t, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.timerItem, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
+                  onPress={() => { setSleepTimer(t.val as any); setTimerModalVisible(false); }}
+                >
+                  <MaterialIcon name={t.icon as any} color={theme.primary} size={28} />
+                  <Text style={[styles.eqLabel, { color: theme.onSurface, marginTop: 8 }]}>{t.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setTimerModalVisible(false)}>
+              <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -445,12 +513,22 @@ const styles = StyleSheet.create({
   avatarGradient: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
   avatarEmoji: { fontSize: 28 },
   avatarCheck: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
-  devAvatar: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  devName: { ...typography.headlineSm, fontWeight: '800' },
-  devRole: { ...typography.titleSm, marginTop: 4, fontWeight: '600' },
-  devBio: { ...typography.bodyMd, textAlign: 'center', marginTop: 16, paddingHorizontal: 20, lineHeight: 22 },
+  devAvatar: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  devName: { ...typography.headlineSm, fontWeight: '900' },
+  devRole: { ...typography.titleSmall, marginTop: 4, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  devBio: { ...typography.bodyLarge, textAlign: 'center', marginTop: 12, paddingHorizontal: 10, lineHeight: 22 },
+  praiseSection: { marginTop: 24, padding: 20, borderRadius: 24, width: '100%' },
+  praiseTitle: { ...typography.titleMedium, fontWeight: '900', textAlign: 'center', marginBottom: 12 },
+  contactCard: { width: '100%', marginTop: 24, padding: 20, borderRadius: 24 },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 },
+  contactText: { ...typography.bodyMedium, fontWeight: '600' },
   devLinks: { flexDirection: 'row', gap: 16, marginTop: 24 },
   devLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, borderWidth: 1 },
-  devLinkText: { ...typography.labelLg, fontWeight: '600' },
-  devVersion: { ...typography.labelSm, marginTop: 24 },
+  devLinkText: { ...typography.labelLarge, fontWeight: '700' },
+  devVersion: { ...typography.labelSmall, marginTop: 24, letterSpacing: 1 },
+  eqGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
+  eqItem: { width: '48%', padding: 20, borderRadius: 20, alignItems: 'center', flexDirection: 'row', gap: 12 },
+  eqIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  eqLabel: { ...typography.titleSmall, fontWeight: '700' },
+  timerItem: { width: '30%', paddingVertical: 20, borderRadius: 20, alignItems: 'center' },
 });

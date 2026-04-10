@@ -18,3 +18,4 @@ export { CreditsScreen } from './CreditsScreen';
 export { PrivacyPolicyScreen } from './PrivacyPolicyScreen';
 export { TermsScreen } from './TermsScreen';
 export { WelcomeScreen } from './WelcomeScreen';
+export { HowToUseScreen } from './HowToUseScreen';

@@ -19,30 +19,49 @@ export function PrivacyPolicyScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>1. Introduction</Text>
         <Text style={styles.bodyText}>
-          Welcome to Tunify. Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use our music streaming service.
+          Welcome to Tunify. Your privacy is our top priority. This Privacy Policy outlines how we handle your data, ensuring a secure and transparent music streaming experience. By using Tunify, you agree to the practices described in this policy.
         </Text>
 
-        <Text style={styles.sectionTitle}>2. Information Collection</Text>
+        <Text style={styles.sectionTitle}>2. Information We Collect</Text>
         <Text style={styles.bodyText}>
-          We collect usage data, such as your listening history, liked songs, and playlist names, to provide a personalized experience. All data is stored locally on your device or in your private cloud account.
+          • <Text style={{fontWeight: 'bold', color: '#FFF'}}>Listening Profile:</Text> We analyze your listening habits to provide personalized recommendations.
+          {"\n"}• <Text style={{fontWeight: 'bold', color: '#FFF'}}>Library Data:</Text> Your liked songs, playlists, and recently played tracks are stored to manage your library.
+          {"\n"}• <Text style={{fontWeight: 'bold', color: '#FFF'}}>Device Info:</Text> We may collect non-personal device information to optimize app performance.
         </Text>
 
-        <Text style={styles.sectionTitle}>3. Third-Party Services</Text>
+        <Text style={styles.sectionTitle}>3. Data Security & Storage</Text>
         <Text style={styles.bodyText}>
-          Tunify integrates with third-party music APIs like JioSaavn and Deezer. These services may collect their own data according to their respective privacy policies.
+          All sensitive data, including your downloads and personal settings, is stored locally on your device or in your private encrypted cloud storage (where applicable). We implement industry-standard encryption to protect your data from unauthorized access.
         </Text>
 
-        <Text style={styles.sectionTitle}>4. Local Storage</Text>
+        <Text style={styles.sectionTitle}>4. Third-Party Integrations</Text>
         <Text style={styles.bodyText}>
-          Downloaded tracks and app settings are stored locally on your device. We do not have access to these files on our servers.
+          Tunify uses third-party APIs (like JioSaavn, Deezer) to fetch music. These services have their own privacy policies. We do not sell or share your personal listening data with these providers in an identifiable format.
         </Text>
 
-        <Text style={styles.sectionTitle}>5. Contact Us</Text>
+        <Text style={styles.sectionTitle}>5. Your Rights</Text>
         <Text style={styles.bodyText}>
-          If you have any questions about this Privacy Policy, please contact us at support@tunify.app.
+          You have the right to access, export, or delete your local data at any time through the app settings. Since most data is local, you have full control over your privacy.
         </Text>
+
+        <Text style={styles.sectionTitle}>6. Children's Privacy</Text>
+        <Text style={styles.bodyText}>
+          Tunify is not intended for children under 13. We do not knowingly collect personal information from children. If you believe such data has been collected, please contact us.
+        </Text>
+
+        <Text style={styles.sectionTitle}>7. Changes to This Policy</Text>
+        <Text style={styles.bodyText}>
+          We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page.
+        </Text>
+
+        <Text style={styles.sectionTitle}>8. Contact Us & Support</Text>
+        <View style={styles.contactInfo}>
+            <Text style={styles.bodyText}>For any privacy-related concerns or support, reach out to us:</Text>
+            <Text style={[styles.bodyText, {color: colors.primary, marginTop: 8}]}>Email: darshansatbhai38@gmail.com</Text>
+            <Text style={[styles.bodyText, {color: colors.primary}]}>Phone: +91 6351015778</Text>
+        </View>
         
-        <View style={{ height: 40 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </View>
   );
