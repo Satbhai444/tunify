@@ -31,6 +31,8 @@ export function SearchScreen({ navigation }: any) {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const recentSearches = useLibraryStore((s) => s.recentSearches);
   const addRecentSearch = useLibraryStore((s) => s.addRecentSearch);
+  const removeRecentSearch = useLibraryStore((s) => s.removeRecentSearch);
+  const clearRecentSearches = useLibraryStore((s) => s.clearRecentSearches);
   
   const { themeMode } = useSettingsStore();
   const theme = themeMode === 'dark' ? darkColors : lightColors;
@@ -119,15 +121,29 @@ export function SearchScreen({ navigation }: any) {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.browseContent}>
           {recentSearches.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Recent Searches</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Recent Searches</Text>
+                <TouchableOpacity onPress={clearRecentSearches}>
+                  <Text style={[styles.clearAllText, { color: theme.primary }]}>Clear All</Text>
+                </TouchableOpacity>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                {recentSearches.slice(0, 5).map((q) => (
+                {recentSearches.slice(0, 10).map((q) => (
                   <TouchableOpacity 
                     key={q} 
                     onPress={() => handleSearch(q)} 
                     style={[styles.recentPill, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
                   >
                     <Text style={[styles.recentPillText, { color: theme.onSurfaceVariant }]}>{q}</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        removeRecentSearch(q);
+                      }}
+                      style={styles.pillClose}
+                    >
+                      <MaterialIcon name="close" size={14} color={theme.onSurfaceVariant} />
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -237,9 +253,12 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '600' },
   browseContent: { paddingHorizontal: 20, paddingBottom: 180 },
   section: { marginBottom: 30 },
-  sectionTitle: { ...typography.titleMd, fontWeight: '800', marginBottom: 16, letterSpacing: 0.5 },
-  recentPill: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
-  recentPillText: { ...typography.labelLg, fontWeight: '600' },
+  sectionTitle: { ...typography.titleMd, fontWeight: '800', letterSpacing: 0.5 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  clearAllText: { ...typography.labelMd, fontWeight: '700' },
+  recentPill: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  recentPillText: { ...typography.labelMd, fontWeight: '600' },
+  pillClose: { marginLeft: 6, padding: 4, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.05)' },
   genreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   genreCard: { width: '48%', height: 110, borderRadius: 16, overflow: 'hidden' },
   genreGradient: { flex: 1, padding: 16, justifyContent: 'space-between' },

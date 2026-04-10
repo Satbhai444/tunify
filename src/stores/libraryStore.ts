@@ -43,6 +43,7 @@ export interface LibraryState {
 
   // Recent Searches
   addRecentSearch: (query: string) => Promise<void>;
+  removeRecentSearch: (query: string) => Promise<void>;
   clearRecentSearches: () => Promise<void>;
 }
 
@@ -182,6 +183,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
   addRecentSearch: async (query) => {
     const recent = [query, ...get().recentSearches.filter((q) => q !== query)].slice(0, 10);
+    set({ recentSearches: recent });
+    await AsyncStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+  },
+
+  removeRecentSearch: async (query) => {
+    const recent = get().recentSearches.filter((q) => q !== query);
     set({ recentSearches: recent });
     await AsyncStorage.setItem(RECENT_KEY, JSON.stringify(recent));
   },
