@@ -3,6 +3,7 @@ export interface Track {
   title: string;
   artist: string;
   artistId?: string;
+  artists?: { name: string; id?: string }[];
   album: string;
   albumId?: string;
   duration: number; // in seconds
@@ -17,6 +18,7 @@ export interface Album {
   title: string;
   artist: string;
   artistId?: string;
+  artists?: { name: string; id?: string }[];
   artwork: string;
   year?: string;
   trackCount?: number;

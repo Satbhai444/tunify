@@ -1,13 +1,19 @@
+import { Platform } from 'react-native';
 import { Track, Album, Artist, Playlist, SearchResults, LyricLine } from '../types';
 
 const BASE_URL = 'https://jiosavan-api2.vercel.app/api';
+const PROXY_URL = 'https://corsproxy.io/?';
 
 // Fetch with timeout to prevent hanging on slow networks
 async function fetchJson<T>(endpoint: string, timeoutMs = 8000): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${BASE_URL}${endpoint}`, { signal: controller.signal });
+    const url = Platform.OS === 'web'
+      ? `${PROXY_URL}${encodeURIComponent(`${BASE_URL}${endpoint}`)}`
+      : `${BASE_URL}${endpoint}`;
+
+    const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`JioSaavn API error: ${res.status}`);
     const data = await res.json();
@@ -30,12 +36,30 @@ function normalizeTrack(raw: any): Track {
     ?? raw.downloadUrl?.find((u: any) => u.quality === '320kbps')
     ?? raw.downloadUrl?.[0];
 
+  // Map all artists (primary and secondary)
+  const allArtists = [
+    ...(raw.artists?.primary ?? []),
+    ...(raw.artists?.featured ?? []),
+    ...(raw.artists?.all ?? []),
+  ];
+  
+  // Deduplicate by ID or name
+  const seen = new Set();
+  const artists = allArtists
+    .map((a: any) => ({ name: a.name, id: a.id }))
+    .filter((a: any) => {
+      const key = a.id || a.name;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
   return {
     id: `js_${raw.id}`,
     title: raw.name ?? raw.title ?? 'Unknown',
-    artist: raw.artists?.primary?.map((a: any) => a.name).join(', ')
-      ?? raw.primaryArtists ?? 'Unknown Artist',
-    artistId: raw.artists?.primary?.[0]?.id,
+    artist: artists.map(a => a.name).join(', ') || 'Unknown Artist',
+    artistId: artists[0]?.id,
+    artists: artists.length > 0 ? artists : undefined,
     album: raw.album?.name ?? '',
     albumId: raw.album?.id,
     duration: Number(raw.duration) || 0,
@@ -48,12 +72,16 @@ function normalizeTrack(raw: any): Track {
 }
 
 function normalizeAlbum(raw: any): Album {
+  const allArtists = raw.artists?.primary ?? 
+                     (raw.primaryArtists ? [{ name: raw.primaryArtists, id: '' }] : []);
+  const artists = allArtists.map((a: any) => ({ name: a.name, id: a.id }));
+
   return {
     id: `js_${raw.id}`,
     title: raw.name ?? raw.title ?? 'Unknown',
-    artist: raw.artists?.primary?.map((a: any) => a.name).join(', ')
-      ?? raw.primaryArtists ?? 'Unknown',
-    artistId: raw.artists?.primary?.[0]?.id,
+    artist: artists.map((a: any) => a.name).join(', ') || 'Unknown',
+    artistId: artists[0]?.id,
+    artists: artists.length > 0 ? artists : undefined,
     artwork: raw.image?.find((i: any) => i.quality === '500x500')?.url
       ?? raw.image?.[raw.image.length - 1]?.url ?? '',
     year: raw.year,
@@ -93,8 +121,8 @@ export async function searchJioSaavn(query: string): Promise<SearchResults> {
   let playlists: Playlist[] = [];
 
   const [songsResult, metaResult] = await Promise.allSettled([
-    fetchJson<any>(`/search/songs?query=${encodeURIComponent(query)}&limit=20`),
-    fetchJson<any>(`/search?query=${encodeURIComponent(query)}`),
+    fetchJson<any>(`/search/songs?query=${encodeURIComponent(query)}&limit=50`),
+    fetchJson<any>(`/search?query=${encodeURIComponent(query)}&limit=20`),
   ]);
 
   if (songsResult.status === 'fulfilled') {
@@ -187,6 +215,7 @@ export async function getArtistDetails(id: string): Promise<{ artist: Artist; to
     return {
       artist: normalizeArtist(data),
       topSongs: (data.topSongs ?? []).map(normalizeTrack),
+      // If the API supports more songs, we can fetch artist/songs later
     };
   } catch {
     return null;

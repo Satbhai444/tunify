@@ -75,14 +75,15 @@ export function PlayerScreen({ navigation }: any) {
   const [artistTracks, setArtistTracks] = useState<LastFmTopTrack[]>([]);
   
   const toggleLike = useLibraryStore((s) => s.toggleLike);
-  const isLiked = useLibraryStore((s) => s.isLiked);
-  const liked = currentTrack ? isLiked(currentTrack.id) : false;
+  const likedSongs = useLibraryStore((s) => s.likedSongs);
+  const liked = currentTrack ? likedSongs.some(t => t.id === currentTrack.id) : false;
 
   const scrollRef = useRef<ScrollView>(null);
   const fullscreenScrollRef = useRef<ScrollView>(null);
 
   const artScale = useRef(new Animated.Value(1)).current;
   const playBtnScale = useRef(new Animated.Value(1)).current;
+  const lastUserScroll = useRef<number>(0);
   const playGlow = useRef(new Animated.Value(0.4)).current;
 
   const showToast = (msg: string) => {
@@ -130,14 +131,16 @@ export function PlayerScreen({ navigation }: any) {
 
   useEffect(() => {
     if (!lyrics.length || !isPlaying) return;
+    
+    // Check if user has scrolled manually in the last 5 seconds
+    if (Date.now() - lastUserScroll.current < 5000) return;
+
     const activeIdx = lyrics.findIndex((l, i) => {
       const next = lyrics[i + 1];
       return position >= l.time && (!next || position < next.time);
     });
 
     if (activeIdx !== -1) {
-      // Only auto-scroll the fullscreen lyrics, not the main player page
-      // to avoid fighting with the user's manual scrolling.
       fullscreenScrollRef.current?.scrollTo({ y: activeIdx * 80, animated: true });
     }
   }, [position, lyrics, isPlaying]);
@@ -213,7 +216,27 @@ export function PlayerScreen({ navigation }: any) {
           <View style={styles.trackDetails}>
             <View style={styles.titleArtist}>
               <Text style={[styles.titleText, { color: theme.onSurface }]} numberOfLines={1}>{String(currentTrack.title)}</Text>
-              <Text style={[styles.artistText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{String(currentTrack.artist)}</Text>
+              <View style={styles.artistLinks}>
+                {currentTrack.artists ? currentTrack.artists.map((art, i) => (
+                  <View key={`${art.id || art.name}_${i}`} style={styles.artistLinkContainer}>
+                    <TouchableOpacity 
+                      onPress={() => art.id && navigation.navigate('ArtistDetail', { id: art.id })}
+                      disabled={!art.id}
+                    >
+                      <Text style={[styles.artistText, { color: theme.primary, textDecorationLine: art.id ? 'underline' : 'none' }]}>
+                        {art.name}
+                      </Text>
+                    </TouchableOpacity>
+                    {i < currentTrack.artists!.length - 1 && (
+                      <Text style={[styles.artistText, { color: theme.onSurfaceVariant }]}>, </Text>
+                    )}
+                  </View>
+                )) : (
+                  <Text style={[styles.artistText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+                    {String(currentTrack.artist)}
+                  </Text>
+                )}
+              </View>
             </View>
             <TouchableOpacity onPress={handleLike}>
               <MaterialIcon 
@@ -388,6 +411,8 @@ export function PlayerScreen({ navigation }: any) {
             ref={fullscreenScrollRef}
             contentContainerStyle={styles.fullscreenLyricsList}
             showsVerticalScrollIndicator={false}
+            onScrollBeginDrag={() => { lastUserScroll.current = Date.now(); }}
+            onMomentumScrollEnd={() => { lastUserScroll.current = Date.now(); }}
           >
             {lyrics.map((l, i) => (
               <TouchableOpacity 
@@ -436,6 +461,8 @@ const styles = StyleSheet.create({
   titleArtist: { flex: 1 },
   titleText: { ...typography.headlineMd, fontWeight: '800' },
   artistText: { ...typography.titleLg, marginTop: 4 },
+  artistLinks: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 },
+  artistLinkContainer: { flexDirection: 'row', alignItems: 'center' },
   sliderSection: { marginBottom: 30 },
   slider: { width: '100%', height: 40 },
   timeRow: { flexDirection: 'row', justifyContent: 'space-between' },

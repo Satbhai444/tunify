@@ -1,13 +1,19 @@
+import { Platform } from 'react-native';
 import { Track, Album, Artist, SearchResults } from '../types';
 
 const BASE_URL = 'https://api.deezer.com';
+const PROXY_URL = 'https://corsproxy.io/?';
 
 // Short timeout — Deezer is often blocked/slow in India
 async function fetchJson<T>(endpoint: string): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 4000);
   try {
-    const res = await fetch(`${BASE_URL}${endpoint}`, { signal: controller.signal });
+    const url = Platform.OS === 'web' 
+      ? `${PROXY_URL}${encodeURIComponent(`${BASE_URL}${endpoint}`)}`
+      : `${BASE_URL}${endpoint}`;
+    
+    const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`Deezer API error: ${res.status}`);
     return res.json();

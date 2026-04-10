@@ -199,7 +199,7 @@ export function ArtistDetailScreen({ route, navigation }: any) {
               />
               <View style={styles.trackInfo}>
                 <Text style={[styles.trackTitle, { color: theme.onSurface }, isActive && { color: theme.primary }]} numberOfLines={1}>{item.title}</Text>
-                <Text style={[styles.trackArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>Popular</Text>
+                <Text style={[styles.trackArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{item.artist}</Text>
               </View>
               <MaterialIcon name={isActive ? "equalizer" : "more-vert"} size={20} color={theme.onSurfaceVariant} />
             </TouchableOpacity>

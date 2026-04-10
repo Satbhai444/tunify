@@ -11,41 +11,33 @@ let Capability: any = null;
 let RNTPEvent: any = null;
 let RNTPState: any = null;
 let RepeatMode: any = null;
+let AppKilledPlaybackBehavior: any = null;
 let isTrackPlayerAvailable = false;
-
 let createAudioPlayer: ((url: string) => any) | null = null;
 let setAudioModeAsync: ((mode: any) => Promise<void>) | null = null;
 let isExpoAudioAvailable = false;
+import { RNTP, isAvailable } from '../utils/nativePlayer';
 
-if (Platform.OS !== 'web') {
-  // Try TrackPlayer first
+if (Platform.OS !== 'web' && isAvailable && RNTP) {
+  TrackPlayer = RNTP.TrackPlayer;
+  Capability = RNTP.Capability;
+  RNTPEvent = RNTP.Event;
+  RNTPState = RNTP.State;
+  RepeatMode = RNTP.RepeatMode;
+  AppKilledPlaybackBehavior = RNTP.AppKilledPlaybackBehavior;
+  isTrackPlayerAvailable = true;
+  console.log('[Player] ✅ Native Player Linked');
+}
+
+if (Platform.OS !== 'web' && !isTrackPlayerAvailable) {
   try {
-    const rntp = require('react-native-track-player');
-    TrackPlayer = rntp.default;
-    Capability = rntp.Capability;
-    RNTPEvent = rntp.Event;
-    RNTPState = rntp.State;
-    RepeatMode = rntp.RepeatMode;
-    // Quick validation — if native module isn't linked, this will throw
-    if (TrackPlayer && typeof TrackPlayer.setupPlayer === 'function') {
-      isTrackPlayerAvailable = true;
-      console.log('[Player] ✅ Using react-native-track-player (Native Build)');
-    }
+    const expoAudio = require('expo-audio');
+    createAudioPlayer = expoAudio.useAudioPlayer || expoAudio.createAudioPlayer;
+    setAudioModeAsync = expoAudio.setAudioModeAsync;
+    isExpoAudioAvailable = true;
+    console.log('[Player] ✅ Using expo-audio (Expo Go mode)');
   } catch (e) {
-    console.log('[Player] ⚠️ TrackPlayer not available, falling back to expo-audio (Expo Go mode)');
-  }
-
-  // Fallback to expo-audio if TrackPlayer not available
-  if (!isTrackPlayerAvailable) {
-    try {
-      const expoAudio = require('expo-audio');
-      createAudioPlayer = expoAudio.createAudioPlayer;
-      setAudioModeAsync = expoAudio.setAudioModeAsync;
-      isExpoAudioAvailable = true;
-      console.log('[Player] ✅ Using expo-audio (Expo Go mode)');
-    } catch (e) {
-      console.warn('[Player] ❌ expo-audio also not available:', e);
-    }
+    console.warn('[Player] ❌ expo-audio also not available:', e);
   }
 }
 
@@ -207,9 +199,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
 
     if (isTrackPlayerAvailable) {
-      try {
-        await TrackPlayer.setupPlayer({ waitForBuffer: true });
+        try {
+          await TrackPlayer.setupPlayer({ 
+            waitForBuffer: true,
+          });
+        } catch (e) {
+          // If already initialized, we just continue to update options
+          console.log('[TrackPlayer] Already initialized, updating options...');
+        }
+        
         await TrackPlayer.updateOptions({
+          android: {
+            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+          },
+          forwardJumpInterval: 10,
+          backwardJumpInterval: 10,
           capabilities: [
             Capability.Play, Capability.Pause,
             Capability.SkipToNext, Capability.SkipToPrevious,
@@ -220,6 +224,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           notificationCapabilities: [
             Capability.Play, Capability.Pause,
             Capability.SkipToNext, Capability.SkipToPrevious,
+            Capability.SeekTo,
             Capability.JumpForward, Capability.JumpBackward,
           ],
         });
@@ -253,11 +258,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
         set({ isPlayerReady: true });
         isInitialized = true;
-      } catch (e) {
-        console.error('[TrackPlayer] Init error:', e);
-        set({ isPlayerReady: true });
-        isInitialized = true;
-      }
     } else {
       // expo-audio mode
       await configureExpoAudio();
@@ -323,18 +323,28 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     } else if (isTrackPlayerAvailable) {
       // Native TrackPlayer
       const tnTracks = tracksToQueue.map(t => ({
-        ...t,
+        id: t.id,
         url: (t as any).localPath || t.url,
+        title: t.title,
+        artist: t.artist,
+        artwork: t.artwork,
       }));
-      await TrackPlayer.reset();
-      if (idx >= 0) {
-        await TrackPlayer.skip(idx);
-      }
-      setTimeout(async () => {
+
+      try {
+        await TrackPlayer.reset();
+        await TrackPlayer.add(tnTracks);
+        
+        const trackIndex = tracksToQueue.findIndex(tn => tn.id === track.id);
+        if (trackIndex >= 0) {
+          await TrackPlayer.skip(trackIndex);
+        }
+        
         await TrackPlayer.play();
-      }, 200);
-      set({ isPlaying: true, isBuffering: false }); // Eager UI update
-      startTrackPlayerPositionTracking();
+        set({ isPlaying: true, isBuffering: false });
+        startTrackPlayerPositionTracking();
+      } catch (e) {
+        console.error('[PlayerStore] Native Play Error:', e);
+      }
     } else {
       // expo-audio fallback (Expo Go)
       await loadAndPlayWithExpoAudio(track);

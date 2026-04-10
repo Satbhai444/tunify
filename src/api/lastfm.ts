@@ -1,14 +1,21 @@
+import { Platform } from 'react-native';
 import { Track } from '../types';
 
 const API_KEY = '308da0a30996922e1ed8b7c90975b625';
 const BASE_URL = 'https://ws.audioscrobbler.com/2.0/';
+const PROXY_URL = 'https://corsproxy.io/?';
 
 async function fetchLastFm(params: Record<string, string>): Promise<any> {
   const qs = new URLSearchParams({ ...params, api_key: API_KEY, format: 'json' }).toString();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(`${BASE_URL}?${qs}`, { signal: controller.signal });
+    const fullUrl = `${BASE_URL}?${qs}`;
+    const url = Platform.OS === 'web' 
+      ? `${PROXY_URL}${encodeURIComponent(fullUrl)}`
+      : fullUrl;
+    
+    const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
     return res.json();
   } catch {
