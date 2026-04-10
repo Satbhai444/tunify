@@ -100,6 +100,7 @@ export function SettingsScreen({ navigation }: any) {
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [eqModalVisible, setEqModalVisible] = useState(false);
   const [timerModalVisible, setTimerModalVisible] = useState(false);
+  const [qualityModalVisible, setQualityModalVisible] = useState(false);
 
   // Profile edit state
   const [editName, setEditName] = useState(settings.userName);
@@ -206,13 +207,7 @@ export function SettingsScreen({ navigation }: any) {
           label="Streaming Quality"
           themeMode={themeMode}
           value={QUALITY_LABELS[settings.audioQuality]}
-          onPress={() => {
-            Alert.alert('Quality', 'Choose audio quality', [
-              { text: 'Low (96kbps)', onPress: () => { settings.setAudioQuality('low'); setPreferredQuality('96kbps'); } },
-              { text: 'Normal (160kbps)', onPress: () => { settings.setAudioQuality('normal'); setPreferredQuality('160kbps'); } },
-              { text: 'High (320kbps)', onPress: () => { settings.setAudioQuality('high'); setPreferredQuality('320kbps'); } },
-            ]);
-          }}
+          onPress={() => setQualityModalVisible(true)}
         />
         <SettingItem
           icon="tune"
