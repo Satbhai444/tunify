@@ -55,21 +55,23 @@ export function SearchScreen({ navigation }: any) {
         const res = await search(text.trim());
         setResults({ tracks: res.tracks, albums: res.albums, artists: res.artists });
         setHasSearched(true);
-        addRecentSearch(text.trim());
       } catch {
         setHasSearched(true);
       } finally {
         setSearching(false);
       }
     }, 500);
-  }, [addRecentSearch]);
+  }, []);
 
   const renderTrackItem = ({ item }: { item: Track }) => {
     const isActive = currentTrack?.id === item.id;
     return (
       <TouchableOpacity 
         style={styles.resultRow} 
-        onPress={() => play(item, results.tracks)}
+        onPress={() => {
+          addRecentSearch(query);
+          play(item, results.tracks);
+        }}
       >
         <BlurView intensity={themeMode === 'dark' ? 10 : 30} tint={themeMode === 'dark' ? 'dark' : 'light'} style={[styles.recordBlur, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }]}>
           <Image source={{ uri: item.artwork }} style={styles.recordArt} />
@@ -156,7 +158,10 @@ export function SearchScreen({ navigation }: any) {
               <TouchableOpacity 
                 key={g.name} 
                 style={styles.genreCard}
-                onPress={() => handleSearch(g.name)}
+                onPress={() => {
+                  addRecentSearch(g.name);
+                  handleSearch(g.name);
+                }}
               >
                 <LinearGradient colors={g.gradient} style={styles.genreGradient}>
                   <Text style={styles.genreText}>{g.name}</Text>
@@ -201,7 +206,10 @@ export function SearchScreen({ navigation }: any) {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.resultRow}
-                  onPress={() => navigation.navigate('ArtistDetail', { artistId: item.id, artistName: item.name, artistImage: item.image })}
+                  onPress={() => {
+                    addRecentSearch(query);
+                    navigation.navigate('ArtistDetail', { artistId: item.id, artistName: item.name, artistImage: item.image });
+                  }}
                 >
                   <BlurView intensity={themeMode === 'dark' ? 10 : 30} tint={themeMode === 'dark' ? 'dark' : 'light'} style={[styles.recordBlur, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }]}>
                     <Image source={{ uri: item.image }} style={[styles.recordArt, { borderRadius: 24 }]} />
@@ -223,7 +231,10 @@ export function SearchScreen({ navigation }: any) {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.resultRow}
-                  onPress={() => navigation.navigate('AlbumDetail', { albumId: item.id, albumName: item.title, albumArtwork: item.artwork })}
+                  onPress={() => {
+                    addRecentSearch(query);
+                    navigation.navigate('AlbumDetail', { albumId: item.id, albumName: item.title, albumArtwork: item.artwork });
+                  }}
                 >
                   <BlurView intensity={themeMode === 'dark' ? 10 : 30} tint={themeMode === 'dark' ? 'dark' : 'light'} style={[styles.recordBlur, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }]}>
                     <Image source={{ uri: item.artwork }} style={styles.recordArt} />

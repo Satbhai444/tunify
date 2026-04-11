@@ -238,11 +238,35 @@ export async function getLyrics(songId: string): Promise<LyricLine[]> {
   try {
     const realId = songId.replace('js_', '');
     const data = await fetchJson<any>(`/songs/${realId}/lyrics`);
-    const lyricsText: string = data.lyrics ?? '';
-    return lyricsText.split('\n').map((line, i) => ({
-      time: i * 5, // approximate timing
-      text: line.trim(),
-    })).filter(l => l.text.length > 0);
+    let lyricsText: string = data.lyrics ?? '';
+    
+    // Clean common HTML entities/tags
+    lyricsText = lyricsText.replace(/<br\s*\/?>/gi, '\n').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+
+    const lines = lyricsText.split('\n');
+    const result: LyricLine[] = [];
+
+    // Regex for LRC timestamp: [mm:ss.xx] or [mm:ss:xx] or [mm:ss]
+    const lrcRegex = /\[(\d{2}):(\d{2})[.:](\d{2,3})\](.*)/;
+
+    lines.forEach((line, i) => {
+      const match = line.trim().match(lrcRegex);
+      if (match) {
+        const mins = parseInt(match[1]);
+        const secs = parseInt(match[2]);
+        const ms = parseInt(match[3]);
+        const time = mins * 60 + secs + (ms / 100);
+        result.push({ time, text: match[4].trim() });
+      } else {
+        // Fallback for non-synced lyrics: use index-based timing as a very rough guide
+        const text = line.replace(/\[.*\]/g, '').trim();
+        if (text) {
+          result.push({ time: i * 4, text });
+        }
+      }
+    });
+
+    return result.filter(l => l.text.length > 0);
   } catch {
     return [];
   }

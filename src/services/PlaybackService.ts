@@ -19,6 +19,13 @@ export const PlaybackService = async function() {
       const interval = event.interval || 10;
       TrackPlayer.getPosition().then((pos: number) => TrackPlayer.seekTo(Math.max(0, pos - interval)));
     });
+    TrackPlayer.addEventListener(Event.RemoteDuck, (event: any) => {
+      if (event.permanent || event.paused) {
+        TrackPlayer.pause();
+      } else {
+        TrackPlayer.play();
+      }
+    });
   } catch (e) {
     console.log('[PlaybackService] Event registration failed');
   }

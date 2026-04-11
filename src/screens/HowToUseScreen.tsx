@@ -25,12 +25,6 @@ const STEPS = [
     color: ['#00C9FF', '#92FE9D'] as [string, string],
   },
   {
-    title: 'Offline Downloads',
-    description: 'Save songs for offline listening. Just tap the download icon on any song or album to save it to your library.',
-    icon: 'file-download',
-    color: ['#F97316', '#B45309'] as [string, string],
-  },
-  {
     title: 'Custom Profile',
     description: 'Personalize your experience by setting up your profile, choosing a cool avatar, and managing your preferences in Settings.',
     icon: 'account-circle',

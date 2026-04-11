@@ -3,7 +3,7 @@
     "name": "Tunify",
     "slug": "tunify",
     "scheme": "tunify",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -23,8 +23,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.tunify.app",
+      "versionCode": 2,
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.WAKE_LOCK",
         "android.permission.FOREGROUND_SERVICE",
