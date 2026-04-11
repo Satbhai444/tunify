@@ -32,8 +32,8 @@ const SLIDES: Slide[] = [
     iconColor: '#72fe8f',
     gradient: ['#0a2e14', '#0e0e0e'],
     title: 'Welcome to Tunify',
-    subtitle: 'Unlimited music streaming with Bollywood, Hollywood, Punjabi, K-Pop, and more — all for free.',
-    highlight: 'Unlimited music',
+    subtitle: 'Unlimited premium music streaming with Bollywood, Hollywood, Punjabi, K-Pop, and more — No Ads, Ever.',
+    highlight: 'Premium Experience',
   },
   {
     id: '2',

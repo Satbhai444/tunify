@@ -222,7 +222,7 @@ export function AppNavigator() {
           );
         }
       } catch (e) {
-        console.log('Update check failed', e);
+        // Silent fail
       }
     };
 
@@ -241,7 +241,7 @@ export function AppNavigator() {
             if (hasNotif) await Notifications.requestPermissionsAsync();
           }
         } catch (e) {
-          console.log('Permission request skipped (native module may be missing)', e);
+          if (__DEV__) console.log('Permission request skipped (native module may be missing)', e);
         }
       })();
     }

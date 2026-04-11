@@ -27,6 +27,6 @@ export const PlaybackService = async function() {
       }
     });
   } catch (e) {
-    console.log('[PlaybackService] Event registration failed');
+    if (__DEV__) console.log('[PlaybackService] Event registration failed');
   }
 };

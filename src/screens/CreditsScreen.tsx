@@ -89,7 +89,7 @@ export function CreditsScreen({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>BUILT WITH</Text>
           <View style={styles.techGrid}>
-            {['React Native', 'Expo SDK 54', 'TypeScript', 'Zustand', 'JioSaavn API', 'Last.fm API'].map((tech, i) => (
+            {['React Native', 'Expo SDK 54', 'TypeScript', 'Zustand', 'TrackPlayer', 'JioSaavn API'].map((tech, i) => (
               <View key={i} style={styles.techChip}>
                 <Text style={styles.techChipText}>{tech}</Text>
               </View>
@@ -107,7 +107,7 @@ export function CreditsScreen({ navigation }: any) {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Version</Text>
-              <Text style={styles.infoValue}>1.0.0</Text>
+              <Text style={styles.infoValue}>1.2.0</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Developer</Text>

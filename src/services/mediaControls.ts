@@ -29,7 +29,7 @@ import type { Track } from '../types/music';
 export function setupNativeLockScreen(player: AudioPlayer, track: Track) {
   try {
     if (typeof player.setActiveForLockScreen !== 'function') {
-      console.log('[MediaControls] ⚠️ setActiveForLockScreen not available (Expo Go mode)');
+      if (__DEV__) console.log('[MediaControls] ⚠️ setActiveForLockScreen not available (Expo Go mode)');
       return;
     }
 
@@ -170,18 +170,20 @@ export function setupMediaControls(
   track: Track,
   handlers: MediaHandlers,
 ) {
-  console.log(`[MediaControls] ✅ Setting up for: "${track.title}" by ${track.artist}`);
-  console.log(`[MediaControls] Artwork: ${track.artwork?.substring(0, 60)}...`);
+  if (__DEV__) {
+    console.log(`[MediaControls] ✅ Setting up for: "${track.title}" by ${track.artist}`);
+    console.log(`[MediaControls] Artwork: ${track.artwork?.substring(0, 60)}...`);
+  }
 
   // Native lock screen (Android / iOS)
   if (player && Platform.OS !== 'web') {
-    console.log('[MediaControls] Platform: Native → using expo-audio lock screen');
+    if (__DEV__) console.log('[MediaControls] Platform: Native → using expo-audio lock screen');
     setupNativeLockScreen(player, track);
   }
 
   // Web Media Session API (browser / Expo Web)
   if (Platform.OS === 'web') {
-    console.log('[MediaControls] Platform: Web → using Media Session API');
+    if (__DEV__) console.log('[MediaControls] Platform: Web → using Media Session API');
   }
   setupWebMediaSession(track, handlers);
 }

@@ -26,7 +26,7 @@ if (Platform.OS !== 'web' && isAvailable && RNTP) {
   RepeatMode = RNTP.RepeatMode;
   AppKilledPlaybackBehavior = RNTP.AppKilledPlaybackBehavior;
   isTrackPlayerAvailable = true;
-  console.log('[Player] ✅ Native Player Linked');
+  if (__DEV__) console.log('[Player] ✅ Native Player Linked');
 }
 
 if (Platform.OS !== 'web' && !isTrackPlayerAvailable) {
@@ -232,7 +232,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         TrackPlayer.addEventListener(RNTPEvent.PlaybackState, (event: any) => {
           // In RNTP v4, state can be a string or part of an object depending on the hook
           const state = typeof event.state === 'string' ? event.state : event.state;
-          console.log('[PlayerStore] State Changed:', state);
+          if (__DEV__) console.log('[PlayerStore] State Changed:', state);
           set({ 
             isPlaying: state === RNTPState.Playing || state === 'playing',
             isBuffering: state === RNTPState.Buffering || state === RNTPState.Loading || state === 'buffering' || state === 'loading'
@@ -240,7 +240,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         });
 
         TrackPlayer.addEventListener(RNTPEvent.PlaybackActiveTrackChanged, (event: any) => {
-          console.log('[PlayerStore] Track Changed:', event.track?.title);
+          if (__DEV__) console.log('[PlayerStore] Track Changed:', event.track?.title);
           if (event.track) {
             const track = event.track as unknown as Track;
             set({ currentTrack: track, duration: event.track.duration || 0 });
@@ -352,7 +352,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   togglePlayPause: async () => {
-    console.log('[PlayerStore] togglePlayPause hit');
+    if (__DEV__) console.log('[PlayerStore] togglePlayPause hit');
     if (isTrackPlayerAvailable) {
       try {
         const pbStateInner = await TrackPlayer.getPlaybackState();

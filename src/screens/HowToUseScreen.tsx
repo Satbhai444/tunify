@@ -49,7 +49,7 @@ export function HowToUseScreen({ navigation }: any) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={[styles.introText, { color: theme.onSurfaceVariant }]}>
-          Getting started with Tunify is easy. Follow these simple steps to make the most of your premium music experience.
+          Getting started with tunify is easy. Follow these simple steps to make the most of your premium music experience Without Any Ads.
         </Text>
 
         {STEPS.map((step, idx) => (
