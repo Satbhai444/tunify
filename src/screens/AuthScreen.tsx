@@ -40,7 +40,7 @@ export function AuthScreen({ navigation }: any) {
         {/* Logo */}
         <View style={styles.header}>
           <MaterialIcon name="graphic-eq" size={48} color={colors.primary} />
-          <Text style={styles.appName}>Tunify</Text>
+          <Text style={styles.appName}>tunify</Text>
           <Text style={styles.tagline}>Music. Free. Forever.</Text>
         </View>
 

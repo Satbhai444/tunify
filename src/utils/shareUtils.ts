@@ -2,7 +2,7 @@ import { Share } from 'react-native';
 import { Track } from '../types';
 
 // Deep link base — tunify://song/<id> format
-// When another Tunify user opens this link, the app will parse the song ID and play it
+// When another tunify user opens this link, the app will parse the song ID and play it
 
 const APP_SCHEME = 'tunify';
 const WEB_DOMAIN = 'https://tunify-music.app';
@@ -16,13 +16,13 @@ export function getSongLink(track: Track): string {
 }
 
 /**
- * Share a song with a deep link so receivers can open it in Tunify
+ * Share a song with a deep link so receivers can open it in tunify
  */
 export async function shareSong(track: Track) {
   const link = getSongLink(track);
   await Share.share({
     title: track.title,
-    message: `🎵 Listen to "${track.title}" on Tunify`,
+    message: `🎵 Listen to "${track.title}" on tunify`,
     url: link, // Crucial for OS-level link recognition
   }, {
     dialogTitle: 'Share this song',
@@ -41,7 +41,7 @@ export async function shareLyric(track: Track, lyricText: string) {
 🎵 ${track.title} 
 👤 ${track.artist}
 
-Listen on Tunify:
+Listen on tunify:
 🔗 ${link}`;
 
   await Share.share({
@@ -58,13 +58,13 @@ export async function sharePlaylist(title: string, trackCount: number, playlistI
   const link = playlistId ? `${WEB_DOMAIN}/playlist/${encodeURIComponent(playlistId)}` : '';
   await Share.share({
     title: title,
-    message: `🎶 Check out "${title}" (${trackCount} songs) on Tunify`,
+    message: `🎶 Check out "${title}" (${trackCount} songs) on tunify`,
     url: link || undefined,
   });
 }
 
 /**
- * Parse a Tunify deep link URL
+ * Parse a tunify deep link URL
  * Returns { type: 'song'|'playlist', id: string } or null
  */
 export function parseDeepLink(url: string): { type: 'song' | 'playlist'; id: string } | null {

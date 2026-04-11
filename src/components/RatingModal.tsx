@@ -35,9 +35,9 @@ export function RatingModal({ visible, onClose, onRate, themeMode }: RatingModal
             <MaterialIcon name="star" size={40} color="#FFF" />
           </LinearGradient>
 
-          <Text style={[styles.title, { color: isDark ? '#FFF' : '#000' }]}>Loving Tunify?</Text>
+          <Text style={[styles.title, { color: isDark ? '#FFF' : '#000' }]}>Loving tunify?</Text>
           <Text style={[styles.subtitle, { color: isDark ? '#A5A5C7' : '#666' }]}>
-            Your feedback means the world to us! It only takes a few seconds to support Darshan's hard work.
+            Your feedback means the world to us! It only takes a few seconds to support our team's hard work.
           </Text>
 
           <View style={styles.stars}>

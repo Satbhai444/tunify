@@ -44,7 +44,7 @@ export function HowToUseScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
           <MaterialIcon name="arrow-back" size={24} color={theme.onSurface} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>How to Use Tunify</Text>
+        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>How to Use tunify</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

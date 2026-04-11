@@ -14,11 +14,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, radii } from '../theme';
-import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
-import { MaterialIcon } from '../components/MaterialIcon';
-import { Skeleton, TrackItemSkeleton, MixCardSkeleton } from '../components/SkeletonLoader';
-import { usePlayerStore, useLibraryStore } from '../stores';
+import { usePlayerStore, useLibraryStore, useSettingsStore } from '../stores';
+import { darkColors, lightColors } from '../theme';
 import { searchSongs, getCuratedSection, getTrending, getDeezerChart } from '../api/musicService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Track } from '../types/music';
@@ -87,15 +84,8 @@ const DAILY_MIX_TEMPLATES = [
 export function DiscoverScreen({ navigation }: any) {
   const likedSongs = useLibraryStore((s) => s.likedSongs);
   const recentlyPlayed = useLibraryStore((s) => s.recentlyPlayed);
-  const play = usePlayerStore((s) => s.play);
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [forYouTracks, setForYouTracks] = useState<Track[]>([]);
-  const [dailyMixes, setDailyMixes] = useState<DailyMix[]>([]);
-  const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
-  const [weeklyDiscovery, setWeeklyDiscovery] = useState<Track[]>([]);
-  const [becauseYouLiked, setBecauseYouLiked] = useState<{ artist: string; tracks: Track[] }[]>([]);
+  const { themeMode } = useSettingsStore();
+  const theme = themeMode === 'dark' ? darkColors : lightColors;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -197,9 +187,9 @@ export function DiscoverScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
-          colors={['#1e1e1e', '#121212', '#000000']}
+          colors={themeMode === 'dark' ? ['#1e1e1e', '#121212', '#000000'] : ['#F8F9FE', '#FFFFFF', '#F0F2FF']}
           style={StyleSheet.absoluteFill}
         />
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 60 }} showsVerticalScrollIndicator={false}>
@@ -224,21 +214,21 @@ export function DiscoverScreen({ navigation }: any) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Animated.ScrollView
         style={{ opacity: fadeAnim }}
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <MaterialIcon name="arrow-back" size={24} color={colors.onSurface} />
+            <MaterialIcon name="arrow-back" size={24} color={theme.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Discover</Text>
+          <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Discover</Text>
           <TouchableOpacity onPress={onRefresh}>
-            <MaterialIcon name="refresh" size={24} color={colors.primary} />
+            <MaterialIcon name="refresh" size={24} color={theme.primary} />
           </TouchableOpacity>
         </View>
 
@@ -246,8 +236,8 @@ export function DiscoverScreen({ navigation }: any) {
         {forYouTracks.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>✨ For You</Text>
-              <Text style={styles.sectionSub}>Based on your taste</Text>
+              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>✨ For You</Text>
+              <Text style={[styles.sectionSub, { color: theme.onSurfaceVariant }]}>Based on your taste</Text>
             </View>
             <FlatList
               data={forYouTracks}
@@ -258,9 +248,9 @@ export function DiscoverScreen({ navigation }: any) {
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.trackCard} onPress={() => handlePlay(item, forYouTracks)} activeOpacity={0.8}>
                   <Image source={{ uri: item.artwork }} style={styles.trackCardImg} />
-                  <View style={styles.trackCardOverlay}>
-                    <Text style={styles.trackCardTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.trackCardArtist} numberOfLines={1}>{item.artist}</Text>
+                  <View style={[styles.trackCardOverlay, { backgroundColor: themeMode === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.85)' }]}>
+                    <Text style={[styles.trackCardTitle, { color: theme.onSurface }]} numberOfLines={1}>{item.title}</Text>
+                    <Text style={[styles.trackCardArtist, { color: theme.primary }]} numberOfLines={1}>{item.artist}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -272,8 +262,8 @@ export function DiscoverScreen({ navigation }: any) {
         {dailyMixes.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>🎵 Daily Mixes</Text>
-              <Text style={styles.sectionSub}>Updated daily based on you</Text>
+              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>🎵 Daily Mixes</Text>
+              <Text style={[styles.sectionSub, { color: theme.onSurfaceVariant }]}>Updated daily based on you</Text>
             </View>
             <FlatList
               data={dailyMixes}
@@ -293,14 +283,14 @@ export function DiscoverScreen({ navigation }: any) {
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>{mix.emoji}</Text>
                     <Text style={styles.dailyMixTitle}>{mix.title}</Text>
                     <Text style={styles.dailyMixSub} numberOfLines={2}>{mix.subtitle}</Text>
-                    <View style={styles.dailyMixPlayBtn}>
-                      <MaterialIcon name="play-arrow" size={20} color={colors.onPrimary} />
+                    <View style={[styles.dailyMixPlayBtn, { backgroundColor: theme.primary }]}>
+                      <MaterialIcon name="play-arrow" size={20} color="#FFF" />
                     </View>
                   </LinearGradient>
                   {/* Mini art mosaic */}
                   <View style={styles.dailyMixArts}>
                     {mix.tracks.slice(0, 4).map((t, i) => (
-                      <Image key={`${mix.id}_art_${i}`} source={{ uri: t.artwork }} style={styles.dailyMixArtImg} />
+                      <Image key={`${mix.id}_art_${i}`} source={{ uri: t.artwork }} style={[styles.dailyMixArtImg, { backgroundColor: theme.surfaceContainer }]} />
                     ))}
                   </View>
                 </TouchableOpacity>
@@ -313,8 +303,8 @@ export function DiscoverScreen({ navigation }: any) {
         {trendingTracks.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>📈 Trending Now</Text>
-              <Text style={styles.sectionSub}>What everyone's listening to</Text>
+              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>📈 Trending Now</Text>
+              <Text style={[styles.sectionSub, { color: theme.onSurfaceVariant }]}>What everyone's listening to</Text>
             </View>
             {trendingTracks.slice(0, 8).map((track, i) => (
               <TouchableOpacity
@@ -323,11 +313,11 @@ export function DiscoverScreen({ navigation }: any) {
                 activeOpacity={0.7}
                 onPress={() => handlePlay(track, trendingTracks)}
               >
-                <Text style={styles.trendIdx}>{i + 1}</Text>
-                <Image source={{ uri: track.artwork }} style={styles.trendArt} />
+                <Text style={[styles.trendIdx, { color: theme.onSurfaceVariant }]}>{i + 1}</Text>
+                <Image source={{ uri: track.artwork }} style={[styles.trendArt, { backgroundColor: theme.surfaceContainer }]} />
                 <View style={styles.trendInfo}>
-                  <Text style={styles.trendTitle} numberOfLines={1}>{track.title}</Text>
-                  <Text style={styles.trendArtist} numberOfLines={1}>{track.artist}</Text>
+                  <Text style={[styles.trendTitle, { color: theme.onSurface }]} numberOfLines={1}>{track.title}</Text>
+                  <Text style={[styles.trendArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{track.artist}</Text>
                 </View>
                 {i < 3 && (
                   <View style={[styles.trendBadge, i === 0 && { backgroundColor: '#FFD700' }, i === 1 && { backgroundColor: '#C0C0C0' }, i === 2 && { backgroundColor: '#CD7F32' }]}>
@@ -338,7 +328,7 @@ export function DiscoverScreen({ navigation }: any) {
                   onPress={() => handlePlay(track, trendingTracks)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <MaterialIcon name="play-circle-outline" size={26} color={colors.primary} />
+                  <MaterialIcon name="play-circle-outline" size={26} color={theme.primary} />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -349,7 +339,7 @@ export function DiscoverScreen({ navigation }: any) {
         {becauseYouLiked.map((section) => (
           <View key={`byl_${section.artist}`} style={styles.section}>
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>💚 Because you like {section.artist}</Text>
+              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>💚 Because you like {section.artist}</Text>
             </View>
             <FlatList
               data={section.tracks}
@@ -360,9 +350,9 @@ export function DiscoverScreen({ navigation }: any) {
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.trackCard} onPress={() => handlePlay(item, section.tracks)} activeOpacity={0.8}>
                   <Image source={{ uri: item.artwork }} style={styles.trackCardImg} />
-                  <View style={styles.trackCardOverlay}>
-                    <Text style={styles.trackCardTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.trackCardArtist} numberOfLines={1}>{item.artist}</Text>
+                  <View style={[styles.trackCardOverlay, { backgroundColor: themeMode === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.85)' }]}>
+                    <Text style={[styles.trackCardTitle, { color: theme.onSurface }]} numberOfLines={1}>{item.title}</Text>
+                    <Text style={[styles.trackCardArtist, { color: theme.primary }]} numberOfLines={1}>{item.artist}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -374,10 +364,10 @@ export function DiscoverScreen({ navigation }: any) {
         {weeklyDiscovery.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>🔮 Weekly Discovery</Text>
-              <Text style={styles.sectionSub}>Fresh picks every week</Text>
+              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>🔮 Weekly Discovery</Text>
+              <Text style={[styles.sectionSub, { color: theme.onSurfaceVariant }]}>Fresh picks every week</Text>
             </View>
-            <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.weeklyHero}>
+            <LinearGradient colors={themeMode === 'dark' ? ['#1a1a2e', '#16213e'] : ['#E0E7FF', '#C7D2FE']} style={styles.weeklyHero}>
               <View style={styles.weeklyHeroHeader}>
                 <View>
                   <Text style={[typography.titleLg, { color: '#fff', fontWeight: '800' }]}>Discover Weekly</Text>
@@ -386,15 +376,15 @@ export function DiscoverScreen({ navigation }: any) {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.weeklyPlayBtn}
+                  style={[styles.weeklyPlayBtn, { backgroundColor: theme.primary }]}
                   onPress={() => handlePlay(weeklyDiscovery[0], weeklyDiscovery)}
                 >
-                  <MaterialIcon name="play-arrow" size={24} color={colors.onPrimary} />
+                  <MaterialIcon name="play-arrow" size={24} color="#FFF" />
                 </TouchableOpacity>
               </View>
               <View style={styles.weeklyArtRow}>
                 {weeklyDiscovery.slice(0, 6).map((t, i) => (
-                  <Image key={`wd_art_${i}`} source={{ uri: t.artwork }} style={styles.weeklyArtImg} />
+                  <Image key={`wd_art_${i}`} source={{ uri: t.artwork }} style={[styles.weeklyArtImg, { backgroundColor: theme.surfaceContainer }]} />
                 ))}
               </View>
             </LinearGradient>
@@ -407,8 +397,8 @@ export function DiscoverScreen({ navigation }: any) {
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.wideCard} onPress={() => handlePlay(item, weeklyDiscovery)} activeOpacity={0.8}>
                   <Image source={{ uri: item.artwork }} style={styles.wideCardImg} />
-                  <Text style={styles.wideCardTitle} numberOfLines={2}>{item.title}</Text>
-                  <Text style={styles.wideCardArtist} numberOfLines={1}>{item.artist}</Text>
+                  <Text style={[styles.wideCardTitle, { color: theme.onSurface }]} numberOfLines={2}>{item.title}</Text>
+                  <Text style={[styles.wideCardArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{item.artist}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -416,6 +406,21 @@ export function DiscoverScreen({ navigation }: any) {
         )}
         <MadeInIndiaFooter />
       </Animated.ScrollView>
+    </View>
+  );
+}
+
+function MadeInIndiaFooter() {
+  const { themeMode } = useSettingsStore();
+  const theme = themeMode === 'dark' ? darkColors : lightColors;
+  return (
+    <View style={{ padding: 40, alignItems: 'center', opacity: 0.5 }}>
+      <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontWeight: '600', letterSpacing: 1.2 }}>
+        MADE WITH ❤️ IN INDIA
+      </Text>
+      <Text style={{ color: theme.onSurfaceVariant, fontSize: 10, marginTop: 4 }}>
+        tunify v1.2.0 Build
+      </Text>
     </View>
   );
 }

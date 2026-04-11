@@ -121,7 +121,7 @@ export function OnboardingScreen({ navigation }: any) {
             <TextInput
               style={styles.nameInput}
               placeholder="Enter your name"
-              placeholderTextColor={colors.outlineVariant}
+              placeholderTextColor={colors.outline}
               value={userName}
               onChangeText={setUserName}
               maxLength={25}

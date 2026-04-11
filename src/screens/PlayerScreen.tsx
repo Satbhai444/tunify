@@ -42,6 +42,8 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+const LYRIC_OFFSET = 0.3; // 300ms early for smoother reading experience
+
 export function PlayerScreen({ navigation }: any) {
   const {
     currentTrack,
@@ -59,6 +61,7 @@ export function PlayerScreen({ navigation }: any) {
     toggleRepeat,
     toggleShuffle,
     addToQueue,
+    sleepTimerRemaining,
   } = usePlayerStore();
 
   const { themeMode } = useSettingsStore();
@@ -137,11 +140,11 @@ export function PlayerScreen({ navigation }: any) {
 
     const activeIdx = lyrics.findIndex((l, i) => {
       const next = lyrics[i + 1];
-      return position >= l.time && (!next || position < next.time);
+      return (position + LYRIC_OFFSET) >= l.time && (!next || (position + LYRIC_OFFSET) < next.time);
     });
 
     if (activeIdx !== -1) {
-      fullscreenScrollRef.current?.scrollTo({ y: activeIdx * 80, animated: true });
+      fullscreenScrollRef.current?.scrollTo({ y: activeIdx * 64, animated: true });
     }
   }, [position, lyrics, isPlaying]);
 
@@ -164,8 +167,18 @@ export function PlayerScreen({ navigation }: any) {
     if (!currentTrack) return;
     showToast('Starting download...');
     try {
-      await downloadTrack(currentTrack.url, currentTrack.id, currentTrack.title);
-      showToast('Downloaded to library');
+      const result = await downloadTrack(currentTrack.url, currentTrack.id, currentTrack.title);
+      if (result) {
+        useLibraryStore.getState().addDownload({
+          ...currentTrack,
+          localPath: result.uri,
+          fileSize: result.size,
+          downloadedAt: Date.now(),
+        });
+        showToast('Downloaded to library');
+      } else {
+        showToast('Download failed');
+      }
     } catch (err) {
       showToast('Download failed');
     }
@@ -173,7 +186,7 @@ export function PlayerScreen({ navigation }: any) {
 
   const currentLyricIdx = lyrics.findIndex((l, i) => {
     const next = lyrics[i + 1];
-    return position >= l.time && (!next || position < next.time);
+    return (position + LYRIC_OFFSET) >= l.time && (!next || (position + LYRIC_OFFSET) < next.time);
   });
 
   if (!currentTrack) {
@@ -266,6 +279,13 @@ export function PlayerScreen({ navigation }: any) {
             <BlurView intensity={30} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.controlsPanel}>
               <TouchableOpacity onPress={toggleShuffle}>
                 <MaterialIcon name="shuffle" size={26} color={isShuffled ? theme.primary : theme.onSurfaceVariant} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => usePlayerStore.getState().setSleepTimer(sleepTimerRemaining ? null : 30)}>
+                <MaterialIcon 
+                  name="nights-stay" 
+                  size={24} 
+                  color={sleepTimerRemaining ? theme.primary : theme.onSurfaceVariant} 
+                />
               </TouchableOpacity>
               <TouchableOpacity onPress={skipPrevious}>
                 <MaterialIcon name="skip-previous" size={40} color={theme.onSurface} />

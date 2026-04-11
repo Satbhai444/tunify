@@ -6,7 +6,7 @@ export function MadeInIndiaFooter() {
   return (
     <View style={styles.container}>
       <Text style={styles.line1}>MADE WITH ❤️ IN INDIA</Text>
-      <Text style={styles.line2}>MADE BY DARSHAN SATBHAI</Text>
+      <Text style={styles.line2}>MADE BY THE TUNIFY TEAM</Text>
     </View>
   );
 }

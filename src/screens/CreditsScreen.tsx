@@ -43,7 +43,7 @@ export function CreditsScreen({ navigation }: any) {
           <View style={styles.avatarLarge}>
             <Text style={styles.avatarEmoji}>🚀</Text>
           </View>
-          <Text style={styles.heroName}>Darshan Satbhai</Text>
+          <Text style={styles.heroName}>The tunify Team</Text>
           <Text style={styles.heroRole}>Creator & Developer</Text>
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>🇮🇳 Made in India</Text>
@@ -52,12 +52,12 @@ export function CreditsScreen({ navigation }: any) {
 
         {/* About the Creator */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ABOUT THE CREATOR</Text>
+          <Text style={styles.sectionTitle}>ABOUT THE TEAM</Text>
           <View style={styles.card}>
             <Text style={styles.cardText}>
-              Tunify is designed and developed with passion by Darshan Satbhai. 
+              tunify is designed and developed with passion by The tunify Team. 
               Every screen, every animation, and every feature has been crafted 
-              to deliver the best music experience possible.
+              to deliver the most premium music experience possible.
             </Text>
           </View>
         </View>
@@ -103,7 +103,7 @@ export function CreditsScreen({ navigation }: any) {
           <View style={styles.card}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>App Name</Text>
-              <Text style={styles.infoValue}>Tunify</Text>
+              <Text style={styles.infoValue}>tunify</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Version</Text>
@@ -111,7 +111,7 @@ export function CreditsScreen({ navigation }: any) {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Developer</Text>
-              <Text style={[styles.infoValue, { color: colors.primary }]}>Darshan Satbhai</Text>
+              <Text style={[styles.infoValue, { color: colors.primary }]}>The tunify Team</Text>
             </View>
             <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
               <Text style={styles.infoLabel}>Country</Text>

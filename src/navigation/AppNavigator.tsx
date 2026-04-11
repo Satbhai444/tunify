@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Linking, Alert, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -105,6 +106,9 @@ function HomeTabs() {
               </View>
             ),
           }}
+          listeners={{
+            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+          }}
         />
         <Tab.Screen
           name="Discover"
@@ -116,6 +120,9 @@ function HomeTabs() {
                 {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
               </View>
             ),
+          }}
+          listeners={{
+            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
           }}
         />
         <Tab.Screen
@@ -143,6 +150,9 @@ function HomeTabs() {
               </View>
             ),
           }}
+          listeners={{
+            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+          }}
         />
         <Tab.Screen
           name="History"
@@ -154,6 +164,9 @@ function HomeTabs() {
                 {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
               </View>
             ),
+          }}
+          listeners={{
+            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
           }}
         />
         <Tab.Screen
@@ -167,14 +180,11 @@ function HomeTabs() {
               </View>
             ),
           }}
+          listeners={{
+            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+          }}
         />
       </Tab.Navigator>
-
-      {!!currentTrack && (
-        <View style={{ position: 'absolute', bottom: Platform.OS === 'ios' ? 170 : 160, left: 10, right: 10, zIndex: 9999 }}>
-           <MiniPlayer onPress={() => nav.navigate('Player')} />
-        </View>
-      )}
     </View>
   );
 }
@@ -190,6 +200,8 @@ export function AppNavigator() {
   const { launchCount, incrementLaunchCount, hasRated, setHasRated, themeMode, lastSeenUpdateId, setLastSeenUpdateId } = useSettingsStore();
   const [showRating, setShowRating] = React.useState(false);
   const [showWhatsNew, setShowWhatsNew] = React.useState(false);
+  const [currentRoute, setCurrentRoute] = React.useState<string | null>(null);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
 
   // Initialize TrackPlayer and Startup Logic
   React.useEffect(() => {
@@ -214,7 +226,7 @@ export function AppNavigator() {
         if (update.isAvailable) {
           Alert.alert(
             'Premium Update Ready',
-            'A new premium update is ready for Tunify. Restart now to experience the latest features?',
+            'A new premium update is ready for tunify. Restart now to experience the latest features?',
             [
               { text: 'Later', style: 'cancel' },
               { text: 'Restart Now', onPress: () => Updates.reloadAsync() }
@@ -291,38 +303,55 @@ export function AppNavigator() {
     return () => sub.remove();
   }, []);
 
+  const hideMiniPlayer = ['Player', 'Splash', 'Welcome', 'Onboarding'].includes(currentRoute || '');
+
   return (
-    <NavigationContainer ref={navigationRef} linking={linking}>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'fade',
-        }}
-      >
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Main" component={HomeTabs} />
-        <Stack.Screen
-          name="Player"
-          component={PlayerScreen}
-          options={{ animation: 'slide_from_bottom', gestureEnabled: true }}
-        />
-        <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="LikedSongs" component={LikedSongsScreen} />
-        <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
-        <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
-        <Stack.Screen name="History" component={HistoryScreen} />
-        <Stack.Screen name="Blend" component={BlendScreen} />
-        <Stack.Screen name="Discover" component={DiscoverScreen} />
-        <Stack.Screen name="Mood" component={MoodScreen} />
-        <Stack.Screen name="Credits" component={CreditsScreen} />
-        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-        <Stack.Screen name="Terms" component={TermsScreen} />
-        <Stack.Screen name="HowToUseGuide" component={HowToUseScreen} />
-      </Stack.Navigator>
+    <NavigationContainer 
+      ref={navigationRef} 
+      linking={linking}
+      onStateChange={() => {
+        const route = navigationRef.current?.getCurrentRoute();
+        if (route) setCurrentRoute(route.name);
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'fade',
+          }}
+        >
+          <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Main" component={HomeTabs} />
+          <Stack.Screen
+            name="Player"
+            component={PlayerScreen}
+            options={{ animation: 'slide_from_bottom', gestureEnabled: true }}
+          />
+          <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="LikedSongs" component={LikedSongsScreen} />
+          <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
+          <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
+          <Stack.Screen name="History" component={HistoryScreen} />
+          <Stack.Screen name="Blend" component={BlendScreen} />
+          <Stack.Screen name="Discover" component={DiscoverScreen} />
+          <Stack.Screen name="Mood" component={MoodScreen} />
+          <Stack.Screen name="Credits" component={CreditsScreen} />
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+          <Stack.Screen name="Terms" component={TermsScreen} />
+          <Stack.Screen name="HowToUseGuide" component={HowToUseScreen} />
+        </Stack.Navigator>
+
+        {!!currentTrack && !hideMiniPlayer && (
+          <View style={[styles.globalMiniPlayer, { bottom: currentRoute === 'Main' ? (Platform.OS === 'ios' ? 170 : 160) : 20 }]}>
+             <MiniPlayer onPress={() => navigationRef.current?.navigate('Player')} />
+          </View>
+        )}
+      </View>
 
       <RatingModal 
         visible={showRating} 
@@ -341,3 +370,12 @@ export function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  globalMiniPlayer: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    zIndex: 9999,
+  },
+});

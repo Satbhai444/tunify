@@ -1,29 +1,34 @@
 import { RNTP, isAvailable } from '../utils/nativePlayer';
+import { usePlayerStore } from '../stores/playerStore';
 
 export const PlaybackService = async function() {
   if (!isAvailable || !RNTP) return;
   const { TrackPlayer, Event } = RNTP;
 
   try {
-    TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
-    TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-    TrackPlayer.addEventListener(Event.RemoteNext, () => TrackPlayer.skipToNext());
-    TrackPlayer.addEventListener(Event.RemotePrevious, () => TrackPlayer.skipToPrevious());
+    TrackPlayer.addEventListener(Event.RemotePlay, () => usePlayerStore.getState().togglePlayPause());
+    TrackPlayer.addEventListener(Event.RemotePause, () => usePlayerStore.getState().togglePlayPause());
+    TrackPlayer.addEventListener(Event.RemotePlayPause, () => usePlayerStore.getState().togglePlayPause());
+    TrackPlayer.addEventListener(Event.RemoteNext, () => usePlayerStore.getState().skipNext());
+    TrackPlayer.addEventListener(Event.RemotePrevious, () => usePlayerStore.getState().skipPrevious());
     TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.destroy());
-    TrackPlayer.addEventListener(Event.RemoteSeek, (event: any) => TrackPlayer.seekTo(event.position));
+    TrackPlayer.addEventListener(Event.RemoteSeek, (event: any) => usePlayerStore.getState().seekTo(event.position));
     TrackPlayer.addEventListener(Event.RemoteJumpForward, (event: any) => {
       const interval = event.interval || 10;
-      TrackPlayer.getPosition().then((pos: number) => TrackPlayer.seekTo(pos + interval));
+      const { position, seekTo } = usePlayerStore.getState();
+      seekTo(position + interval);
     });
     TrackPlayer.addEventListener(Event.RemoteJumpBackward, (event: any) => {
       const interval = event.interval || 10;
-      TrackPlayer.getPosition().then((pos: number) => TrackPlayer.seekTo(Math.max(0, pos - interval)));
+      const { position, seekTo } = usePlayerStore.getState();
+      seekTo(Math.max(0, position - interval));
     });
     TrackPlayer.addEventListener(Event.RemoteDuck, (event: any) => {
+      const { togglePlayPause, isPlaying } = usePlayerStore.getState();
       if (event.permanent || event.paused) {
-        TrackPlayer.pause();
+        if (isPlaying) togglePlayPause();
       } else {
-        TrackPlayer.play();
+        if (!isPlaying) togglePlayPause();
       }
     });
   } catch (e) {

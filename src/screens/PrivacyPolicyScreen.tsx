@@ -19,7 +19,7 @@ export function PrivacyPolicyScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>1. Introduction</Text>
         <Text style={styles.bodyText}>
-          Welcome to Tunify. Your privacy is our top priority. This Privacy Policy outlines how we handle your data, ensuring a secure and transparent music streaming experience. By using Tunify, you agree to the practices described in this policy.
+          Welcome to tunify. Your privacy is our top priority. This Privacy Policy outlines how we handle your data, ensuring a secure and transparent music streaming experience. By using tunify, you agree to the practices described in this policy.
         </Text>
 
         <Text style={styles.sectionTitle}>2. Information We Collect</Text>
@@ -36,7 +36,7 @@ export function PrivacyPolicyScreen({ navigation }: any) {
 
         <Text style={styles.sectionTitle}>4. Third-Party Integrations</Text>
         <Text style={styles.bodyText}>
-          Tunify uses third-party APIs (like JioSaavn, Deezer) to fetch music. These services have their own privacy policies. We do not sell or share your personal listening data with these providers in an identifiable format.
+          tunify uses third-party APIs (like JioSaavn, Deezer) to fetch music. These services have their own privacy policies. We do not sell or share your personal listening data with these providers in an identifiable format.
         </Text>
 
         <Text style={styles.sectionTitle}>5. Your Rights</Text>
@@ -46,7 +46,7 @@ export function PrivacyPolicyScreen({ navigation }: any) {
 
         <Text style={styles.sectionTitle}>6. Children's Privacy</Text>
         <Text style={styles.bodyText}>
-          Tunify is not intended for children under 13. We do not knowingly collect personal information from children. If you believe such data has been collected, please contact us.
+          tunify is not intended for children under 13. We do not knowingly collect personal information from children. If you believe such data has been collected, please contact us.
         </Text>
 
         <Text style={styles.sectionTitle}>7. Changes to This Policy</Text>
@@ -57,8 +57,7 @@ export function PrivacyPolicyScreen({ navigation }: any) {
         <Text style={styles.sectionTitle}>8. Contact Us & Support</Text>
         <View style={styles.contactInfo}>
             <Text style={styles.bodyText}>For any privacy-related concerns or support, reach out to us:</Text>
-            <Text style={[styles.bodyText, {color: colors.primary, marginTop: 8}]}>Email: darshansatbhai38@gmail.com</Text>
-            <Text style={[styles.bodyText, {color: colors.primary}]}>Phone: +91 6351015778</Text>
+            <Text style={[styles.bodyText, {color: colors.primary, marginTop: 8}]}>Email: support@tunify-music.app</Text>
         </View>
         
         <View style={{ height: 60 }} />
@@ -107,5 +106,11 @@ const styles = StyleSheet.create({
     ...typography.bodyLarge,
     color: '#A5A5C7',
     lineHeight: 24,
+  },
+  contactInfo: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
 });

@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
     icon: 'music-note',
     iconColor: '#72fe8f',
     gradient: ['#0a2e14', '#0e0e0e'],
-    title: 'Welcome to Tunify',
+    title: 'Welcome to tunify',
     subtitle: 'Unlimited premium music streaming with Bollywood, Hollywood, Punjabi, K-Pop, and more — No Ads, Ever.',
     highlight: 'Premium Experience',
   },

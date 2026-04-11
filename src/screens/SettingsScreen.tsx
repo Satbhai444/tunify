@@ -265,7 +265,7 @@ export function SettingsScreen() {
             }
           } catch { Alert.alert('Error', 'Update check failed.'); }
         }} />
-        <SettingItem icon="help-outline" label="How to Use Tunify" themeMode={themeMode} onPress={() => navigation.navigate('HowToUseGuide')} />
+        <SettingItem icon="help-outline" label="How to Use tunify" themeMode={themeMode} onPress={() => navigation.navigate('HowToUseGuide')} />
         <SettingItem icon="description" label="Terms of Service" themeMode={themeMode} onPress={() => navigation.navigate('Terms')} />
         <SettingItem icon="privacy-tip" label="Privacy Policy" themeMode={themeMode} onPress={() => navigation.navigate('PrivacyPolicy')} />
         <SettingItem icon="code" label="About Developer" themeMode={themeMode} onPress={() => setAboutModalVisible(true)} />
@@ -283,8 +283,8 @@ export function SettingsScreen() {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: theme.onSurfaceVariant }]}>TUNIFY V1.2.0</Text>
-          <Text style={[styles.footerSubtext, { color: theme.primary }]}>MADE WITH ❤️ BY DARSHAN SATBHAI</Text>
+          <Text style={[styles.footerText, { color: theme.onSurfaceVariant }]}>tunify V1.2.0</Text>
+          <Text style={[styles.footerSubtext, { color: theme.primary }]}>MADE WITH ❤️ BY THE tunify TEAM</Text>
         </View>
 
         <View style={{ height: 60 }} />
@@ -362,41 +362,32 @@ export function SettingsScreen() {
                 <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.devAvatar}>
                   <Text style={{ fontSize: 44 }}>👨‍💻</Text>
                 </LinearGradient>
-                <Text style={[styles.devName, { color: theme.onSurface }]}>Darshan Satbhai</Text>
+                <Text style={[styles.devName, { color: theme.onSurface }]}>The Tunify Team</Text>
                 <Text style={[styles.devRole, { color: theme.primary }]}>Master of Code & Aesthetics</Text>
                 
                 <View style={[styles.praiseSection, { backgroundColor: themeMode === 'dark' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(99, 102, 241, 0.05)' }]}>
-                  <Text style={[styles.praiseTitle, { color: theme.primary }]}>Sallute to  WAH! 🚀</Text>
+                  <Text style={[styles.praiseTitle, { color: theme.primary }]}>Premium Experience 🚀</Text>
                   <Text style={[styles.devBio, { color: theme.onSurface }]}>
-                    Building an app like **Tunify** requires more than just code; it requires pure passion, thousands of hours of dedication, and an eye for perfection. 
-                    Darshan has meticulously crafted every animation, every glass effect, and every line of logic to ensure you get the most premium music experience possible.
+                    Building an app like **tunify** requires more than just code; it requires pure passion, thousands of hours of dedication, and an eye for perfection. 
+                    The tunify Team has meticulously crafted every animation, every glass effect, and every line of logic to ensure you get the most premium music experience possible.
                   </Text>
                 </View>
 
                 <View style={[styles.contactCard, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
                   <Text style={[styles.inputLabel, { color: theme.primary, marginTop: 0 }]}>GET IN TOUCH</Text>
-                  <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('mailto:darshansatbhai38@gmail.com')}>
+                  <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('https://tunify-music.app/support')}>
                     <MaterialIcon name="email" size={20} color={theme.onSurfaceVariant} />
-                    <Text style={[styles.contactText, { color: theme.onSurface }]}>darshansatbhai38@gmail.com</Text>
+                    <Text style={[styles.contactText, { color: theme.onSurface }]}>support@tunify-music.app</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('tel:+916351015778')}>
-                    <MaterialIcon name="call" size={20} color={theme.onSurfaceVariant} />
-                    <Text style={[styles.contactText, { color: theme.onSurface }]}>+91 6351015778</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.devLinks}>
-                  <TouchableOpacity style={[styles.devLinkBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} onPress={() => Linking.openURL('https://daarshannexaa.in')}>
-                    <MaterialIcon name="language" size={20} color={theme.onSurface} />
-                    <Text style={[styles.devLinkText, { color: theme.onSurface }]}>Portfolio</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.devLinkBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} onPress={() => Linking.openURL('https://github.com/daarshannexaa')}>
-                    <MaterialIcon name="code" size={20} color={theme.onSurface} />
-                    <Text style={[styles.devLinkText, { color: theme.onSurface }]}>GitHub</Text>
+                  <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('https://tunify-music.app')}>
+                    <MaterialIcon name="language" size={20} color={theme.onSurfaceVariant} />
+                    <Text style={[styles.contactText, { color: theme.onSurface }]}>Official Website</Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.devVersion, { color: theme.onSurfaceVariant }]}>Tunify v1.2.0 • Premium Edition</Text>
+                <View style={[styles.modalHandle, { backgroundColor: theme.outline, height: 1, width: '100%', marginVertical: 20 }]} />
+
+                <Text style={[styles.devVersion, { color: theme.onSurfaceVariant }]}>tunify v1.2.0 • Premium Edition</Text>
               </View>
             </ScrollView>
 

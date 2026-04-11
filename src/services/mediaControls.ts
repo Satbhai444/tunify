@@ -38,14 +38,12 @@ export function setupNativeLockScreen(player: AudioPlayer, track: Track) {
       {
         title: track.title || 'Unknown Title',
         artist: track.artist || 'Unknown Artist',
-        albumTitle: track.album || 'Tunify',
+        albumTitle: track.album || 'tunify',
         artworkUrl: track.artwork || '', // Must be HTTPS
       },
       {
         showSeekForward: true,
         showSeekBackward: true,
-        showNextTrack: true,
-        showPreviousTrack: true,
       },
     );
   } catch (e) {
@@ -64,7 +62,7 @@ export function updateNativeMetadata(player: AudioPlayer, track: Track) {
     player.updateLockScreenMetadata({
       title: track.title || 'Unknown Title',
       artist: track.artist || 'Unknown Artist',
-      albumTitle: track.album || 'Tunify',
+      albumTitle: track.album || 'tunify',
       artworkUrl: track.artwork || '',
     });
   } catch (e) {
@@ -109,7 +107,7 @@ export function setupWebMediaSession(track: Track, handlers: MediaHandlers) {
   ms.metadata = new MediaMetadata({
     title: track.title || 'Unknown Title',
     artist: track.artist || 'Unknown Artist',
-    album: track.album || 'Tunify',
+    album: track.album || 'tunify',
     artwork: track.artwork
       ? [
           { src: track.artwork, sizes: '96x96', type: 'image/jpeg' },

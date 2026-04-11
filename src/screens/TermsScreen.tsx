@@ -19,22 +19,22 @@ export function TermsScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
         <Text style={styles.bodyText}>
-          By downloading or using Tunify, you agree to be bound by these Terms of Service and all applicable laws and regulations.
+          By downloading or using tunify, you agree to be bound by these Terms of Service and all applicable laws and regulations.
         </Text>
 
         <Text style={styles.sectionTitle}>2. License to Use</Text>
         <Text style={styles.bodyText}>
-          Tunify grants you a limited, non-exclusive, non-transferable license to use the app for personal, non-commercial music listening and stream management.
+          tunify grants you a limited, non-exclusive, non-transferable license to use the app for personal, non-commercial music listening and stream management.
         </Text>
 
         <Text style={styles.sectionTitle}>3. User Content</Text>
         <Text style={styles.bodyText}>
-          You are responsible for all content you upload or manage within the app. Do not use Tunify to infringe on intellectual property rights of any third party.
+          You are responsible for all content you upload or manage within the app. Do not use tunify to infringe on intellectual property rights of any third party.
         </Text>
 
         <Text style={styles.sectionTitle}>4. Limitation of Liability</Text>
         <Text style={styles.bodyText}>
-          Tunify is provided "as is" without warranty of any kind. We are not liable for any direct or indirect damages arising from your use of the app.
+          tunify is provided "as is" without warranty of any kind. We are not liable for any direct or indirect damages arising from your use of the app.
         </Text>
 
         <Text style={styles.sectionTitle}>5. Modifications</Text>

@@ -20,7 +20,7 @@ const HIGHLIGHTS = [
   },
   {
     title: 'How to Use Guide',
-    description: 'New to Tunify? Explore our new step-by-step guide to master all the premium features.',
+    description: 'New to tunify? Explore our new step-by-step guide to master all the premium features.',
     icon: 'menu-book',
     color: ['#00C9FF', '#92FE9D'] as [string, string],
   },
@@ -55,7 +55,7 @@ export function WhatsNewModal({ visible, onClose, themeMode }: WhatsNewModalProp
 
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
             <Text style={[styles.intro, { color: theme.onSurfaceVariant }]}>
-              Welcome to the all-new Tunify. We've meticulously redesigned every corner to give you the most premium experience possible.
+              Welcome to the all-new tunify. We've meticulously redesigned every corner to give you the most premium experience possible.
             </Text>
 
             {HIGHLIGHTS.map((item, idx) => (

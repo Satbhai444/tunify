@@ -1,278 +1,198 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, typography } from '../theme';
+import { colors } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { useLibraryStore } from '../stores';
 import { useSettingsStore } from '../stores/settingsStore';
 import { setPreferredQuality } from '../api/musicService';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const QUALITY_KBPS: Record<string, string> = { low: '96kbps', normal: '160kbps', high: '320kbps' };
 
-const LOADING_STEPS = ['Loading library...', 'Setting up audio...', 'Almost ready...', 'Welcome!'];
+const LOADING_STEPS = ['Initializing...', 'Checking Library...', 'Waking Engines...', 'Almost there...'];
+const BRAND_CHARS = 'tunify'.split('');
 
 export function SplashScreen({ navigation }: any) {
-  // Animations
-  const logoScale = useRef(new Animated.Value(0.3)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(20)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const progressWidth = useRef(new Animated.Value(0)).current;
-  const progressOpacity = useRef(new Animated.Value(0)).current;
-  const glowScale = useRef(new Animated.Value(0.5)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const noteRotate = useRef(new Animated.Value(0)).current;
+  // --- Background Aura Animations ---
+  const blob1Pos = useRef(new Animated.ValueXY({ x: -50, y: -50 })).current;
+  const blob2Pos = useRef(new Animated.ValueXY({ x: SCREEN_W, y: SCREEN_H / 2 })).current;
+  const blob3Pos = useRef(new Animated.ValueXY({ x: SCREEN_W / 2, y: SCREEN_H })).current;
 
+  // --- Centerpiece Animations ---
+  const visualizerOpacity = useRef(new Animated.Value(0)).current;
+  const barAnims = [
+    useRef(new Animated.Value(0.4)).current,
+    useRef(new Animated.Value(0.7)).current,
+    useRef(new Animated.Value(0.5)).current,
+    useRef(new Animated.Value(0.9)).current,
+    useRef(new Animated.Value(0.6)).current,
+  ];
+
+  // --- Text Animations ---
+  const charAnims = useRef(BRAND_CHARS.map(() => new Animated.Value(0))).current;
+  const footerOpacity = useRef(new Animated.Value(0)).current;
+  
+  // --- Progress & Step State ---
   const [loadingStep, setLoadingStep] = React.useState(0);
+  const progressWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Step 1: Glow fades in
-    Animated.parallel([
-      Animated.timing(glowOpacity, {
-        toValue: 0.25,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(glowScale, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Step 2: Logo bounces in (200ms delay)
-    Animated.sequence([
-      Animated.delay(200),
-      Animated.parallel([
-        Animated.spring(logoScale, {
-          toValue: 1,
-          friction: 5,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        // Small note rotation
+    // 1. Start Aura Floating Animations
+    const createBlobAnimation = (anim: Animated.ValueXY, to: { x: number, y: number }, duration: number) => {
+      const from = { x: (anim.x as any)._value, y: (anim.y as any)._value };
+      Animated.loop(
         Animated.sequence([
-          Animated.timing(noteRotate, {
-            toValue: -0.05,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.spring(noteRotate, {
-            toValue: 0,
-            friction: 4,
-            tension: 100,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]),
-    ]).start();
+          Animated.timing(anim, { toValue: to, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(anim, { toValue: from, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      ).start();
+    };
 
-    // Step 3: Title slides up + fades in (500ms delay)
+    createBlobAnimation(blob1Pos, { x: 100, y: 150 }, 8000);
+    createBlobAnimation(blob2Pos, { x: 50, y: SCREEN_H / 3 }, 10000);
+    createBlobAnimation(blob3Pos, { x: SCREEN_W - 100, y: SCREEN_H - 200 }, 9000);
+
+    // 2. Start Visualizer Pulsing
+    barAnims.forEach((anim, i) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, { toValue: 1, duration: 400 + (i * 100), easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+          Animated.timing(anim, { toValue: 0.3, duration: 400 + (i * 100), easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+        ])
+      ).start();
+    });
+
+    // 3. Sequential Intro Animation
     Animated.sequence([
-      Animated.delay(500),
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(titleTranslateY, {
-          toValue: 0,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.delay(300),
+      // Fade in Visualizer
+      Animated.timing(visualizerOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+      // Staggered letters
+      Animated.stagger(100, charAnims.map(anim => 
+        Animated.spring(anim, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true })
+      )),
+      // Fade in footer
+      Animated.timing(footerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
     ]).start();
 
-    // Step 4: Subtitle fades in (800ms delay)
-    Animated.sequence([
-      Animated.delay(800),
-      Animated.timing(subtitleOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // 4. Progress Loading
+    Animated.timing(progressWidth, {
+      toValue: 1,
+      duration: 3500,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
 
-    // Step 5: Progress bar appears + fills (1000ms delay)
-    Animated.sequence([
-      Animated.delay(1000),
-      Animated.timing(progressOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(progressWidth, {
-        toValue: 1,
-        duration: 1800,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-        useNativeDriver: false,
-      }),
-    ]).start();
+    // 5. Loading step updates
+    const stepInterval = setInterval(() => {
+      setLoadingStep(prev => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
+    }, 800);
 
-    // Pulse glow loop
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-
-    // Loading step updates
-    const stepTimers = LOADING_STEPS.map((_, i) =>
-      setTimeout(() => setLoadingStep(i), 1100 + i * 600),
-    );
-
-    // Navigate after splash
+    // 6. Navigation
     const navTimer = setTimeout(async () => {
       try {
         const onboardingDone = await AsyncStorage.getItem('tunify_onboarding_done');
         const target = onboardingDone === 'true' ? 'Main' : 'Welcome';
         navigation.reset({ index: 0, routes: [{ name: target }] });
       } catch (e) {
-        console.error('Navigation error:', e);
         navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
       }
-    }, 3200);
+    }, 4000);
 
-    // Load library + settings in background
+    // 7. Background Data Loading
     useLibraryStore.getState().loadLibrary().catch(() => {});
-    useSettingsStore
-      .getState()
-      .loadSettings()
-      .then(() => {
-        const q = useSettingsStore.getState().audioQuality;
-        setPreferredQuality(QUALITY_KBPS[q] || '160kbps');
-      })
-      .catch(() => {});
+    useSettingsStore.getState().loadSettings().then(() => {
+      const q = useSettingsStore.getState().audioQuality;
+      setPreferredQuality(QUALITY_KBPS[q] || '160kbps');
+    }).catch(() => {});
 
     return () => {
+      clearInterval(stepInterval);
       clearTimeout(navTimer);
-      stepTimers.forEach(clearTimeout);
     };
-  }, [navigation]);
-
-  const noteRotateInterp = noteRotate.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ['-30deg', '30deg'],
-  });
+  }, []);
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#0a0a0a', '#0e0e0e', '#111211']}
-        style={StyleSheet.absoluteFill}
-      />
+      {/* Dynamic Background Aura */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient colors={['#050505', '#0e0e0e']} style={StyleSheet.absoluteFill} />
+        
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(124, 58, 237, 0.15)', transform: blob1Pos.getTranslateTransform() }]} />
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(114, 254, 143, 0.08)', width: 400, height: 400, transform: blob2Pos.getTranslateTransform() }]} />
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(79, 57, 204, 0.12)', width: 250, height: 250, transform: blob3Pos.getTranslateTransform() }]} />
+      </View>
 
-      {/* Ambient glow */}
-      <Animated.View
-        style={[
-          styles.glowOuter,
-          {
-            opacity: glowOpacity,
-            transform: [{ scale: Animated.multiply(glowScale, pulseAnim) }],
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.glowInner,
-          {
-            opacity: glowOpacity,
-            transform: [{ scale: glowScale }],
-          },
-        ]}
-      />
-
-      {/* Logo */}
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            opacity: logoOpacity,
-            transform: [{ scale: logoScale }],
-          },
-        ]}
-      >
-        {/* Ring around logo */}
-        <View style={styles.logoRing}>
-          <View style={styles.logoInner}>
-            <Animated.View style={{ transform: [{ rotate: noteRotateInterp }] }}>
-              <MaterialIcon name="music-note" size={52} color={colors.primary} />
-            </Animated.View>
+      <View style={styles.content}>
+        {/* Animated Visualizer Centerpiece */}
+        <Animated.View style={[styles.centerpiece, { opacity: visualizerOpacity }]}>
+          <View style={styles.visualizer}>
+            {barAnims.map((anim, i) => (
+              <Animated.View 
+                key={i} 
+                style={[
+                  styles.bar, 
+                  { 
+                    height: anim.interpolate({ inputRange: [0, 1], outputRange: [15, 50] }),
+                    backgroundColor: i === 2 ? colors.primary : colors.primary + '88'
+                  }
+                ]} 
+              />
+            ))}
           </View>
-        </View>
-      </Animated.View>
+          <View style={styles.logoBase}>
+             <MaterialIcon name="music-note" size={60} color={colors.primary} />
+          </View>
+        </Animated.View>
 
-      {/* Brand Name */}
-      <Animated.Text
-        style={[
-          styles.title,
-          {
-            opacity: titleOpacity,
-            transform: [{ translateY: titleTranslateY }],
-          },
-        ]}
-      >
-        Tunify
-      </Animated.Text>
-
-      <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-        YOUR MUSIC, YOUR VIBE
-      </Animated.Text>
-
-      {/* Progress Section */}
-      <Animated.View style={[styles.loadingContainer, { opacity: progressOpacity }]}>
-        <View style={styles.progressTrack}>
-          <Animated.View
-            style={[
-              styles.progressFill,
-              {
-                width: progressWidth.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
-          />
-          {/* Glow on progress tip */}
-          <Animated.View
-            style={[
-              styles.progressGlow,
-              {
-                left: progressWidth.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '95%'],
-                }),
-              },
-            ]}
-          />
+        {/* Staggered Brand Text */}
+        <View style={styles.brandContainer}>
+          {BRAND_CHARS.map((char, i) => (
+            <Animated.Text
+              key={i}
+              style={[
+                styles.brandChar,
+                {
+                  opacity: charAnims[i],
+                  transform: [
+                    { translateY: charAnims[i].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
+                    { scale: charAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }
+                  ]
+                }
+              ]}
+            >
+              {char}
+            </Animated.Text>
+          ))}
         </View>
 
-        <Animated.Text style={[styles.loadingText, { opacity: progressOpacity }]}>
-          {LOADING_STEPS[loadingStep]}
+        <Animated.Text style={[styles.tagline, { opacity: charAnims[5] }]}>
+          PREMIUM MUSIC PLAYER
         </Animated.Text>
+      </View>
+
+      {/* Modern Progress Indicator */}
+      <Animated.View style={[styles.footer, { opacity: footerOpacity }]}>
+        <Text style={styles.loadingText}>{LOADING_STEPS[loadingStep]}</Text>
+        <View style={styles.progressTrack}>
+          <Animated.View 
+            style={[
+              styles.progressFill, 
+              { 
+                width: progressWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) 
+              }
+            ]} 
+          >
+            <LinearGradient 
+              colors={[colors.primary + '44', colors.primary]} 
+              start={{x: 0, y: 0}} 
+              end={{x: 1, y: 0}} 
+              style={StyleSheet.absoluteFill} 
+            />
+          </Animated.View>
+        </View>
       </Animated.View>
     </View>
   );
@@ -281,92 +201,92 @@ export function SplashScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#050505',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glowOuter: {
+  blob: {
     position: 'absolute',
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    backgroundColor: 'rgba(114, 254, 143, 0.08)',
+    width: 300,
+    height: 300,
+    borderRadius: 200,
+    opacity: 0.6,
   },
-  glowInner: {
+  content: {
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  centerpiece: {
+    height: 180,
+    width: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  visualizer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 60,
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(114, 254, 143, 0.12)',
+    top: 20,
   },
-  logoContainer: {
-    marginBottom: 32,
+  bar: {
+    width: 6,
+    borderRadius: 3,
   },
-  logoRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: 'rgba(114, 254, 143, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+  logoBase: {
+    marginTop: 40,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
   },
-  logoInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(114, 254, 143, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(114, 254, 143, 0.15)',
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 60,
   },
-  title: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 2,
-    marginBottom: 8,
+  brandChar: {
+    fontSize: 52,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(255, 255, 255, 0.3)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
+    marginHorizontal: 1,
   },
-  subtitle: {
-    fontSize: 11,
-    fontWeight: '600',
+  tagline: {
+    fontSize: 10,
+    fontWeight: '700',
     color: colors.primary,
-    letterSpacing: 5,
+    letterSpacing: 4,
+    marginTop: 10,
     opacity: 0.8,
   },
-  loadingContainer: {
+  footer: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 60,
+    width: '60%',
     alignItems: 'center',
-    width: '65%',
-  },
-  progressTrack: {
-    width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 2,
-    overflow: 'visible',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
-  progressGlow: {
-    position: 'absolute',
-    top: -4,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(114, 254, 143, 0.4)',
   },
   loadingText: {
     fontSize: 11,
-    fontWeight: '500',
-    color: colors.onSurfaceVariant,
-    marginTop: 14,
-    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.4)',
+    marginBottom: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  progressTrack: {
+    width: '100%',
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 1,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 1,
   },
 });

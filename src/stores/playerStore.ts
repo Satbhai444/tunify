@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Track } from '../types';
 import { setupWebMediaSession, updateWebPlaybackState, updateWebPositionState } from '../services/mediaControls';
 import { createWebAudioPlayer } from '../utils/webAudio';
@@ -210,7 +211,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         
         await TrackPlayer.updateOptions({
           android: {
-            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlayback,
           },
           forwardJumpInterval: 10,
           backwardJumpInterval: 10,
@@ -219,6 +220,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             Capability.SkipToNext, Capability.SkipToPrevious,
             Capability.Stop, Capability.SeekTo,
             Capability.JumpForward, Capability.JumpBackward,
+            Capability.PlayPause,
           ],
           compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
           notificationCapabilities: [
@@ -226,6 +228,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             Capability.SkipToNext, Capability.SkipToPrevious,
             Capability.SeekTo,
             Capability.JumpForward, Capability.JumpBackward,
+            Capability.PlayPause,
           ],
         });
 
@@ -275,6 +278,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setPlayerReady: (ready) => set({ isPlayerReady: ready }),
 
   toggleRepeat: async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const current = get().repeatMode;
     const next = current === 'off' ? 'all' : current === 'all' ? 'one' : 'off';
     set({ repeatMode: next });
@@ -286,14 +290,49 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
   },
 
-  toggleShuffle: () => {
-    const { isShuffled, queue, originalQueue, currentTrack } = get();
+  toggleShuffle: async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const { isShuffled, queue, originalQueue, currentTrack, isPlaying } = get();
+    let newQueue: Track[] = [];
+
     if (!isShuffled) {
-      const shuffled = [...queue.filter(t => t.id !== currentTrack?.id)].sort(() => Math.random() - 0.5);
-      const newQueue = currentTrack ? [currentTrack, ...shuffled] : shuffled;
+      // Shuffling: current track stays first, others shuffle
+      const others = queue.filter(t => t.id !== currentTrack?.id).sort(() => Math.random() - 0.5);
+      newQueue = currentTrack ? [currentTrack, ...others] : others;
       set({ isShuffled: true, queue: newQueue, originalQueue: queue });
     } else {
-      set({ isShuffled: false, queue: originalQueue.length > 0 ? originalQueue : queue });
+      // Unshuffling: restore original order
+      newQueue = originalQueue.length > 0 ? originalQueue : queue;
+      set({ isShuffled: false, queue: newQueue });
+    }
+
+    // Sync with Native Player
+    if (isTrackPlayerAvailable) {
+      try {
+        const pos = await TrackPlayer.getPosition();
+        const tnTracks = newQueue.map(t => ({
+          id: t.id,
+          url: (t as any).localPath || t.url,
+          title: t.title,
+          artist: t.artist,
+          artwork: t.artwork,
+        }));
+
+        await TrackPlayer.reset();
+        await TrackPlayer.add(tnTracks);
+        
+        const currentIdx = currentTrack ? newQueue.findIndex(t => t.id === currentTrack.id) : 0;
+        if (currentIdx >= 0) {
+          await TrackPlayer.skip(currentIdx);
+        }
+        
+        await TrackPlayer.seekTo(pos);
+        if (isPlaying) {
+          await TrackPlayer.play();
+        }
+      } catch (e) {
+        console.error('[PlayerStore] Shuffle Sync Error:', e);
+      }
     }
   },
 
@@ -360,12 +399,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         console.log('[PlayerStore] Native State:', stateStr, pbStateInner.state);
         
         if (pbStateInner.state === RNTPState.Playing || pbStateInner.state === 'playing') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          // Smooth fade out
+          await TrackPlayer.setVolume(0.5);
+          await new Promise(r => setTimeout(r, 100));
+          await TrackPlayer.setVolume(0);
           await TrackPlayer.pause();
-          set({ isPlaying: false }); // Eager UI update
+          await TrackPlayer.setVolume(1.0); // Reset for next play
+          set({ isPlaying: false }); 
           if (positionTimer) { clearInterval(positionTimer); positionTimer = null; }
         } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          await TrackPlayer.setVolume(1.0);
           await TrackPlayer.play();
-          set({ isPlaying: true }); // Eager UI update
+          set({ isPlaying: true }); 
           startTrackPlayerPositionTracking();
         }
       } catch (e) {
@@ -392,7 +439,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     
     if (isTrackPlayerAvailable) {
       try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         await TrackPlayer.skipToNext();
+        // Eagerly update current track info
+        const idx = await TrackPlayer.getActiveTrackIndex();
+        if (idx !== undefined) {
+          const track = await TrackPlayer.getTrack(idx);
+          if (track) {
+            set({ currentTrack: track as unknown as Track });
+          }
+        }
       } catch (e) {
         console.error('[PlayerStore] skipNext Error:', e);
       }
@@ -418,8 +474,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (isTrackPlayerAvailable) {
       try {
         const pos = await TrackPlayer.getPosition();
-        if (pos > 3) await TrackPlayer.seekTo(0);
-        else await TrackPlayer.skipToPrevious();
+        if (pos > 3) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          await TrackPlayer.seekTo(0);
+        } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          await TrackPlayer.skipToPrevious();
+          // Eagerly update current track info
+          const idx = await TrackPlayer.getActiveTrackIndex();
+          if (idx !== undefined) {
+            const track = await TrackPlayer.getTrack(idx);
+            if (track) {
+              set({ currentTrack: track as unknown as Track });
+            }
+          }
+        }
       } catch (e) {
         console.error('[PlayerStore] skipPrevious Error:', e);
       }

@@ -103,7 +103,7 @@ const DEFAULTS = {
   offlineMode: false,
   normalizeVolume: false,
   explicitContentFilter: false,
-  userName: 'Tunify User',
+  userName: 'tunify User',
   userEmail: '',
   userBio: '',
   userPhone: '',

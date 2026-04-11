@@ -30,7 +30,7 @@ export async function getSyncedLyrics(
     try {
       res = await fetch(`${BASE_URL}/get?${params.toString()}`, {
         signal: controller.signal,
-        headers: { 'User-Agent': 'Tunify/1.0.0' },
+        headers: { 'User-Agent': 'tunify/1.0.0' },
       });
     } finally {
       clearTimeout(timeout);
@@ -76,7 +76,7 @@ async function fetchWithTimeout(url: string, ms = 8000): Promise<Response> {
   try {
     return await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Tunify/1.0.0' },
+      headers: { 'User-Agent': 'tunify/1.0.0' },
     });
   } finally {
     clearTimeout(timeout);
