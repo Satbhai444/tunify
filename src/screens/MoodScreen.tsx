@@ -10,6 +10,9 @@ import {
   Animated,
   Easing,
   Dimensions,
+  TextInput,
+  NativeSyntheticEvent,
+  TextInputSubmitEditingEventData,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radii } from '../theme';
@@ -135,6 +138,28 @@ export function MoodScreen({ navigation }: any) {
     ]).start();
   };
 
+  const [query, setQuery] = useState('');
+
+  const handleAIQuery = async (text: string) => {
+    if (!text.trim()) return;
+    setQuery(text);
+    setLoading(true);
+    setSelectedMood({
+      id: 'custom', name: 'Custom Mood', emoji: '✨',
+      gradient: ['#7B61FF', '#4F39CC'],
+      queries: [text],
+      description: `Results for "${text}"`
+    });
+    
+    try {
+      const results = await searchSongs(text);
+      setMoodTracks(results.slice(0, 30));
+    } catch {
+      setMoodTracks([]);
+    }
+    setLoading(false);
+  };
+
   const goBack = () => {
     if (selectedMood) {
       setSelectedMood(null);
@@ -151,10 +176,16 @@ export function MoodScreen({ navigation }: any) {
         <TouchableOpacity onPress={goBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <MaterialIcon name="arrow-back" size={24} color={colors.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {selectedMood ? `${selectedMood.emoji} ${selectedMood.name}` : "What's your mood?"}
-        </Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.searchBar}>
+           <MaterialIcon name="auto-awesome" size={20} color={colors.primary} />
+           <TextInput
+             style={styles.searchInput}
+             placeholder="Midnight study vibe..."
+             placeholderTextColor={colors.onSurfaceVariant}
+             onSubmitEditing={(e: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => handleAIQuery(e.nativeEvent.text)}
+           />
+        </View>
+        <View style={{ width: 10 }} />
       </View>
 
       {!selectedMood ? (
@@ -221,8 +252,8 @@ export function MoodScreen({ navigation }: any) {
                       }
                     }}
                   >
-                    <MaterialIcon name="play-arrow" size={22} color={colors.onPrimary} />
-                    <Text style={[typography.titleSm, { color: colors.onPrimary, fontWeight: '700', marginLeft: 6 }]}>Play All</Text>
+                    <MaterialIcon name="play-arrow" size={22} color="#FFFFFF" />
+                    <Text style={[typography.titleSm, { color: "#FFFFFF", fontWeight: '700', marginLeft: 6 }]}>Play All</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.shuffleBtn}
@@ -277,8 +308,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 12,
+    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 12, gap: 12
   },
+  searchBar: {
+    flex: 1, height: 44, borderRadius: radii.md, backgroundColor: colors.surfaceContainer,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 10
+  },
+  searchInput: { flex: 1, ...typography.bodyMd, color: colors.onSurface },
   headerTitle: { ...typography.titleLg, color: colors.onSurface, fontWeight: '700' },
 
   /* Mood Grid */
@@ -305,8 +341,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, paddingVertical: 12, borderRadius: radii.full,
   },
   shuffleBtn: {
-    width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primaryAlpha10,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.primaryAlpha20,
+    width: 48, height: 48, borderRadius: 24, backgroundColor: colors.glassAlpha10,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.glassAlpha20,
   },
 
   /* Track list */

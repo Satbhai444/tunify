@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   techChip: {
-    backgroundColor: colors.surfaceContainerHigh,
+    backgroundColor: colors.surfaceContainerHighest,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radii.full,

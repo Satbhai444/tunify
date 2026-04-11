@@ -169,6 +169,8 @@ export interface PlayerState {
 
   play: (track: Track, queue?: Track[]) => Promise<void>;
   togglePlayPause: () => Promise<void>;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
   skipNext: () => Promise<void>;
   skipPrevious: () => Promise<void>;
   seekTo: (seconds: number) => Promise<void>;
@@ -230,6 +232,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             Capability.JumpForward, Capability.JumpBackward,
             Capability.PlayPause,
           ],
+        });
+
+        TrackPlayer.addEventListener(RNTPEvent.RemotePause, () => {
+          if (__DEV__) console.log('[TrackPlayer] Remote Pause (Audio Focus/Lockscreen)');
+          get().pause();
+        });
+
+        TrackPlayer.addEventListener(RNTPEvent.RemotePlay, () => {
+          if (__DEV__) console.log('[TrackPlayer] Remote Play (Audio Focus/Lockscreen)');
+          get().resume();
         });
 
         TrackPlayer.addEventListener(RNTPEvent.PlaybackState, (event: any) => {
@@ -429,6 +441,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         updateWebPlaybackState(true);
       }
     }
+  },
+
+  pause: async () => {
+    if (isTrackPlayerAvailable) {
+      await TrackPlayer.pause();
+    } else if (expoPlayer) {
+      await expoPlayer.pauseAsync();
+    }
+    set({ isPlaying: false });
+  },
+
+  resume: async () => {
+    if (isTrackPlayerAvailable) {
+      await TrackPlayer.play();
+    } else if (expoPlayer) {
+      await expoPlayer.playAsync();
+    }
+    set({ isPlaying: true });
   },
 
   skipNext: async () => {

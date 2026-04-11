@@ -286,13 +286,13 @@ export function BlendScreen({ navigation }: any) {
   const renderLoadingPhase = () => (
     <View style={styles.loadingContainer}>
       <View style={styles.blendingAvatars}>
-        <View style={[styles.blendAvatar, { backgroundColor: colors.surfaceContainerHigh }]}>
+        <View style={[styles.blendAvatar, { backgroundColor: colors.surfaceContainerHighest }]}>
           <Text style={{ fontSize: 32 }}>🎧</Text>
         </View>
         <View style={styles.blendConnector}>
           <MaterialIcon name="compare-arrows" size={24} color={colors.primary} />
         </View>
-        <View style={[styles.blendAvatar, { backgroundColor: colors.surfaceContainerHigh }]}>
+        <View style={[styles.blendAvatar, { backgroundColor: colors.surfaceContainerHighest }]}>
           <Text style={{ fontSize: 32 }}>{selectedFriend?.avatar}</Text>
         </View>
       </View>
@@ -366,8 +366,8 @@ export function BlendScreen({ navigation }: any) {
                   }
                 }}
               >
-                <MaterialIcon name="play-arrow" size={22} color={colors.onPrimary} />
-                <Text style={[typography.titleSm, { color: colors.onPrimary, fontWeight: '700', marginLeft: 6 }]}>Play Blend</Text>
+                <MaterialIcon name="play-arrow" size={22} color="#FFFFFF" />
+                <Text style={[typography.titleSm, { color: '#FFFFFF', fontWeight: '700', marginLeft: 6 }]}>Play Blend</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.shuffleBtn}
@@ -478,9 +478,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.full,
-    backgroundColor: colors.primaryAlpha10,
+    backgroundColor: colors.glassAlpha10,
     borderWidth: 1,
-    borderColor: colors.primaryAlpha20,
+    borderColor: colors.glassAlpha20,
   },
 
   /* Friend Grid */
@@ -569,11 +569,11 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primaryAlpha10,
+    backgroundColor: colors.glassAlpha10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.primaryAlpha20,
+    borderColor: colors.glassAlpha20,
   },
 
   /* Track list */

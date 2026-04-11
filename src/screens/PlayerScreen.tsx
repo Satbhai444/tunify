@@ -12,9 +12,13 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  FlatList,
   ActivityIndicator,
   Animated,
-  FlatList,
+  Easing,
+  TextInput,
+  NativeSyntheticEvent,
+  TextInputSubmitEditingEventData,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -62,6 +66,7 @@ export function PlayerScreen({ navigation }: any) {
     toggleShuffle,
     addToQueue,
     sleepTimerRemaining,
+    setQueue,
   } = usePlayerStore();
 
   const { themeMode } = useSettingsStore();
@@ -200,15 +205,23 @@ export function PlayerScreen({ navigation }: any) {
         colors={themeMode === 'dark' ? ['#4F39CC', '#16162E', theme.background] : ['#A5B4FC', '#F8F9FE', theme.background]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
-          <MaterialIcon name="keyboard-arrow-down" size={32} color={theme.onSurface} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.onSurface }]} numberOfLines={1}>{String(currentTrack.album || 'Now Playing')}</Text>
-        <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.headerIcon}>
-          <MaterialIcon name="more-horiz" size={28} color={theme.onSurface} />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+            <MaterialIcon name="keyboard-arrow-down" size={32} color={theme.onSurface} />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerLabel}>PLAYING FROM</Text>
+            <Text style={[styles.headerTitle, { color: theme.onSurface, fontSize: 13 }]} numberOfLines={1}>
+              {currentTrack?.album || 'tunify'}
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.headerIcon} 
+            onPress={() => currentTrack && shareSong(currentTrack)}
+          >
+            <MaterialIcon name="share" size={24} color={theme.onSurface} />
+          </TouchableOpacity>
+        </View>
       <ScrollView 
         ref={scrollRef}
         showsVerticalScrollIndicator={false} 
@@ -300,7 +313,9 @@ export function PlayerScreen({ navigation }: any) {
                     style={[
                       styles.playGlow, 
                       { 
-                        backgroundColor: theme.primary, 
+                        backgroundColor: theme.surfaceContainer,
+                        borderRadius: radii.md,
+                        marginTop: spacing.md,
                         opacity: playGlow,
                         transform: [{ scale: Animated.multiply(playGlow, 1.2) }] 
                       }
@@ -470,9 +485,11 @@ export function PlayerScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, height: 110 },
-  headerIcon: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...typography.labelLg, flex: 1, textAlign: 'center', fontWeight: '800', letterSpacing: 1.5 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, height: 120 },
+  headerIcon: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
+  headerInfo: { flex: 1, alignItems: 'center' },
+  headerLabel: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 1 },
+  headerTitle: { ...typography.headlineSm, fontWeight: '800', letterSpacing: 1.5 },
   scrollContent: { paddingHorizontal: 20 },
   artworkWrapper: { alignItems: 'center', marginVertical: 30 },
   artContainer: { width: ART_SIZE, height: ART_SIZE, borderRadius: 40, overflow: 'hidden', elevation: 20, shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.5, shadowRadius: 30 },
