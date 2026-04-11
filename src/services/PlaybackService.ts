@@ -1,9 +1,11 @@
 import { RNTP, isAvailable } from '../utils/nativePlayer';
-import { usePlayerStore } from '../stores/playerStore';
 
 export const PlaybackService = async function() {
   if (!isAvailable || !RNTP) return;
   const { TrackPlayer, Event } = RNTP;
+
+  // Lazy load store to prevent circular dependency at boot
+  const { usePlayerStore } = require('../stores/playerStore');
 
   try {
     TrackPlayer.addEventListener(Event.RemotePlay, () => usePlayerStore.getState().togglePlayPause());

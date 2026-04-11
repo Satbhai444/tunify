@@ -54,7 +54,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-updates"
     ],
     "extra": {
       "eas": {

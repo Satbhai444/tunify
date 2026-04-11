@@ -194,6 +194,8 @@ const linking = {
   prefixes: ['tunify://', 'https://tunify-music.app'],
 };
 
+import { ErrorBoundary } from '../components/ErrorBoundary';
+
 export function AppNavigator() {
   const navigationRef = React.useRef<any>(null);
   const initPlayer = usePlayerStore((s) => s.initPlayer);
@@ -205,100 +207,86 @@ export function AppNavigator() {
 
   // Initialize TrackPlayer and Startup Logic
   React.useEffect(() => {
-    initPlayer();
-    
-    // Increment launch count
-    incrementLaunchCount();
-    const newCount = launchCount + 1;
-
-    // Check for updates or major overhaul reveal
-    const checkUpdates = async () => {
+    const startup = async () => {
       try {
-        // 1. Handle "What's New" Reveal
-        // In development, updateId might be null. In production, it's a UUID.
-        const currentUpdateId = Updates.updateId || 'overhaul_v1'; 
-        if (lastSeenUpdateId !== currentUpdateId) {
-          setShowWhatsNew(true);
-        }
+        await initPlayer();
+        incrementLaunchCount();
+        const newCount = launchCount + 1;
 
-        // 2. Check for waiting updates while the app is running
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          Alert.alert(
-            'Premium Update Ready',
-            'A new premium update is ready for tunify. Restart now to experience the latest features?',
-            [
-              { text: 'Later', style: 'cancel' },
-              { text: 'Restart Now', onPress: () => Updates.reloadAsync() }
-            ]
-          );
+        // Check for updates or major overhaul reveal
+        const checkUpdates = async () => {
+          try {
+            // Safety Check: if Updates is missing or not configured
+            if (!Updates.updateId && !Updates.manifest) {
+              if (__DEV__) console.log('[Updates] Not configured or missing native module');
+              return; 
+            }
+
+            const currentUpdateId = Updates.updateId || 'overhaul_v1'; 
+            if (lastSeenUpdateId !== currentUpdateId) {
+              setShowWhatsNew(true);
+            }
+
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+              Alert.alert(
+                'Premium Update Ready',
+                'A new premium update is ready for tunify. Restart now to experience the latest features?',
+                [
+                  { text: 'Later', style: 'cancel' },
+                  { text: 'Restart Now', onPress: () => Updates.reloadAsync() }
+                ]
+              );
+            }
+          } catch (e) {
+            // Silent fail for updates
+          }
+        };
+
+        checkUpdates();
+
+        // Trigger rating modal if used 3+ times and hasn't rated
+        if (newCount >= 3 && !hasRated) {
+          setTimeout(() => setShowRating(true), 5000); 
         }
       } catch (e) {
-        // Silent fail
+        console.error('[Startup] Critical boot error:', e);
       }
     };
 
-    checkUpdates();
-
-    // Request permissions on first few launches
-    if (newCount <= 2) {
-      (async () => {
-        try {
-          if (MediaLibrary) {
-            const hasMedia = await MediaLibrary.getPermissionsAsync().catch(() => null);
-            if (hasMedia) await MediaLibrary.requestPermissionsAsync();
-          }
-          if (Notifications) {
-            const hasNotif = await Notifications.getPermissionsAsync().catch(() => null);
-            if (hasNotif) await Notifications.requestPermissionsAsync();
-          }
-        } catch (e) {
-          if (__DEV__) console.log('Permission request skipped (native module may be missing)', e);
-        }
-      })();
-    }
-
-    // Trigger rating modal if used 3+ times and hasn't rated
-    if (newCount >= 3 && !hasRated) {
-      setTimeout(() => setShowRating(true), 5000); // Show after 5s
-    }
+    startup();
   }, [initPlayer]);
 
   // Handle deep links (tunify://song/xxx)
   React.useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
-      const parsed = parseDeepLink(event.url);
-      if (!parsed) return;
+      try {
+        const parsed = parseDeepLink(event.url);
+        if (!parsed) return;
 
-      if (parsed.type === 'song') {
-        try {
-          const songData = await getSongDetails(parsed.id);
-          if (songData) {
-            usePlayerStore.getState().play(songData, [songData]);
-            // Small delay to let navigation mount
-            setTimeout(() => {
-              navigationRef.current?.navigate('Player');
-            }, 300);
-          }
-        } catch {
-          Alert.alert('Error', 'Could not load this song.');
+        if (parsed.type === 'song') {
+            const songData = await getSongDetails(parsed.id);
+            if (songData) {
+              usePlayerStore.getState().play(songData, [songData]);
+              setTimeout(() => {
+                navigationRef.current?.navigate('Player');
+              }, 300);
+            }
+        } else if (parsed.type === 'playlist') {
+          setTimeout(() => {
+            navigationRef.current?.navigate('PlaylistDetail', {
+              playlistId: parsed.id,
+              title: 'Shared Playlist',
+            });
+          }, 300);
         }
-      } else if (parsed.type === 'playlist') {
-        setTimeout(() => {
-          navigationRef.current?.navigate('PlaylistDetail', {
-            playlistId: parsed.id,
-            title: 'Shared Playlist',
-          });
-        }, 300);
-      }
+      } catch (e) {}
     };
 
-    // Handle link that opened the app
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink({ url });
     });
 
-    // Handle link while app is open
     const sub = Linking.addEventListener('url', handleDeepLink);
     return () => sub.remove();
   }, []);
@@ -306,68 +294,70 @@ export function AppNavigator() {
   const hideMiniPlayer = ['Player', 'Splash', 'Welcome', 'Onboarding'].includes(currentRoute || '');
 
   return (
-    <NavigationContainer 
-      ref={navigationRef} 
-      linking={linking}
-      onStateChange={() => {
-        const route = navigationRef.current?.getCurrentRoute();
-        if (route) setCurrentRoute(route.name);
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'fade',
-          }}
-        >
-          <Stack.Screen name="Splash" component={SplashScreen} />
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          <Stack.Screen name="Main" component={HomeTabs} />
-          <Stack.Screen
-            name="Player"
-            component={PlayerScreen}
-            options={{ animation: 'slide_from_bottom', gestureEnabled: true }}
-          />
-          <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="LikedSongs" component={LikedSongsScreen} />
-          <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
-          <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
-          <Stack.Screen name="History" component={HistoryScreen} />
-          <Stack.Screen name="Blend" component={BlendScreen} />
-          <Stack.Screen name="Discover" component={DiscoverScreen} />
-          <Stack.Screen name="Mood" component={MoodScreen} />
-          <Stack.Screen name="Credits" component={CreditsScreen} />
-          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-          <Stack.Screen name="Terms" component={TermsScreen} />
-          <Stack.Screen name="HowToUseGuide" component={HowToUseScreen} />
-        </Stack.Navigator>
+    <ErrorBoundary>
+      <NavigationContainer 
+        ref={navigationRef} 
+        linking={linking}
+        onStateChange={() => {
+          const route = navigationRef.current?.getCurrentRoute();
+          if (route) setCurrentRoute(route.name);
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: 'fade',
+            }}
+          >
+            <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="Main" component={HomeTabs} />
+            <Stack.Screen
+              name="Player"
+              component={PlayerScreen}
+              options={{ animation: 'slide_from_bottom', gestureEnabled: true }}
+            />
+            <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="LikedSongs" component={LikedSongsScreen} />
+            <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
+            <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
+            <Stack.Screen name="History" component={HistoryScreen} />
+            <Stack.Screen name="Blend" component={BlendScreen} />
+            <Stack.Screen name="Discover" component={DiscoverScreen} />
+            <Stack.Screen name="Mood" component={MoodScreen} />
+            <Stack.Screen name="Credits" component={CreditsScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <Stack.Screen name="Terms" component={TermsScreen} />
+            <Stack.Screen name="HowToUseGuide" component={HowToUseScreen} />
+          </Stack.Navigator>
 
-        {!!currentTrack && !hideMiniPlayer && (
-          <View style={[styles.globalMiniPlayer, { bottom: currentRoute === 'Main' ? (Platform.OS === 'ios' ? 170 : 160) : 20 }]}>
-             <MiniPlayer onPress={() => navigationRef.current?.navigate('Player')} />
-          </View>
-        )}
-      </View>
+          {!!currentTrack && !hideMiniPlayer && (
+            <View style={[styles.globalMiniPlayer, { bottom: currentRoute === 'Main' ? (Platform.OS === 'ios' ? 170 : 160) : 20 }]}>
+               <MiniPlayer onPress={() => navigationRef.current?.navigate('Player')} />
+            </View>
+          )}
+        </View>
 
-      <RatingModal 
-        visible={showRating} 
-        onClose={() => setShowRating(false)} 
-        onRate={() => { setHasRated(true); setShowRating(false); }}
-        themeMode={themeMode}
-      />
-      <WhatsNewModal 
-        visible={showWhatsNew} 
-        onClose={() => {
-          setShowWhatsNew(false);
-          setLastSeenUpdateId(Updates.updateId || 'overhaul_v1');
-        }} 
-        themeMode={themeMode}
-      />
-    </NavigationContainer>
+        <RatingModal 
+          visible={showRating} 
+          onClose={() => setShowRating(false)} 
+          onRate={() => { setHasRated(true); setShowRating(false); }}
+          themeMode={themeMode}
+        />
+        <WhatsNewModal 
+          visible={showWhatsNew} 
+          onClose={() => {
+            setShowWhatsNew(false);
+            setLastSeenUpdateId(Updates.updateId || 'overhaul_v1');
+          }} 
+          themeMode={themeMode}
+        />
+      </NavigationContainer>
+    </ErrorBoundary>
   );
 }
 
