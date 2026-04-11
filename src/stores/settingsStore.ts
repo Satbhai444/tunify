@@ -54,6 +54,7 @@ export interface SettingsState {
   avatarId: string; // references AVATAR_OPTIONS id
   launchCount: number;
   hasRated: boolean;
+  lastSeenUpdateId: string;
 
   // Actions
   setThemeMode: (mode: ThemeMode) => void;
@@ -78,6 +79,7 @@ export interface SettingsState {
   setAvatarId: (id: string) => void;
   incrementLaunchCount: () => void;
   setHasRated: (rated: boolean) => void;
+  setLastSeenUpdateId: (id: string) => void;
   loadSettings: () => Promise<void>;
   resetSettings: () => Promise<void>;
 }
@@ -113,9 +115,10 @@ const DEFAULTS = {
   avatarId: 'av1',
   launchCount: 0,
   hasRated: false,
+  lastSeenUpdateId: '',
 };
 
-export const useSettingsStore = create<SettingsState>((set) => ({
+export const useSettingsStore = create<SettingsState>((set, get) => ({
   ...DEFAULTS,
 
   setThemeMode: (mode) => { set({ themeMode: mode }); persist({ themeMode: mode }); },
@@ -145,6 +148,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     persist({ launchCount: newVal });
   },
   setHasRated: (rated) => { set({ hasRated: rated }); persist({ hasRated: rated }); },
+  setLastSeenUpdateId: (id) => { set({ lastSeenUpdateId: id }); persist({ lastSeenUpdateId: id }); },
 
   loadSettings: async () => {
     try {
@@ -174,6 +178,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           avatarId: d.avatarId ?? DEFAULTS.avatarId,
           launchCount: d.launchCount ?? DEFAULTS.launchCount,
           hasRated: d.hasRated ?? DEFAULTS.hasRated,
+          lastSeenUpdateId: d.lastSeenUpdateId ?? DEFAULTS.lastSeenUpdateId,
         });
       }
     } catch {}

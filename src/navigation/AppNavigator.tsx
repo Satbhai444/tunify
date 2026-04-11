@@ -31,8 +31,17 @@ import {
 } from '../screens';
 import { usePlayerStore, useSettingsStore } from '../stores';
 import { RatingModal } from '../components/RatingModal';
-import * as MediaLibrary from 'expo-media-library';
-import * as Notifications from 'expo-notifications';
+// Native modules loaded dynamically to prevent boot errors if missing
+let MediaLibrary: any;
+let Notifications: any;
+try {
+  MediaLibrary = require('expo-media-library');
+  Notifications = require('expo-notifications');
+} catch (e) {
+  // Gracefully handle missing modules
+}
+import { WhatsNewModal } from '../components/WhatsNewModal';
+import * as Updates from 'expo-updates';
 import { parseDeepLink } from '../utils/shareUtils';
 import { getSongDetails } from '../api';
 
@@ -178,25 +187,61 @@ const linking = {
 export function AppNavigator() {
   const navigationRef = React.useRef<any>(null);
   const initPlayer = usePlayerStore((s) => s.initPlayer);
-  const { launchCount, setLaunchCount, hasRated, setHasRated, themeMode } = useSettingsStore();
+  const { launchCount, incrementLaunchCount, hasRated, setHasRated, themeMode, lastSeenUpdateId, setLastSeenUpdateId } = useSettingsStore();
   const [showRating, setShowRating] = React.useState(false);
+  const [showWhatsNew, setShowWhatsNew] = React.useState(false);
 
   // Initialize TrackPlayer and Startup Logic
   React.useEffect(() => {
     initPlayer();
     
     // Increment launch count
+    incrementLaunchCount();
     const newCount = launchCount + 1;
-    setLaunchCount(newCount);
+
+    // Check for updates or major overhaul reveal
+    const checkUpdates = async () => {
+      try {
+        // 1. Handle "What's New" Reveal
+        // In development, updateId might be null. In production, it's a UUID.
+        const currentUpdateId = Updates.updateId || 'overhaul_v1'; 
+        if (lastSeenUpdateId !== currentUpdateId) {
+          setShowWhatsNew(true);
+        }
+
+        // 2. Check for waiting updates while the app is running
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          Alert.alert(
+            'Premium Update Ready',
+            'A new premium update is ready for Tunify. Restart now to experience the latest features?',
+            [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Restart Now', onPress: () => Updates.reloadAsync() }
+            ]
+          );
+        }
+      } catch (e) {
+        console.log('Update check failed', e);
+      }
+    };
+
+    checkUpdates();
 
     // Request permissions on first few launches
     if (newCount <= 2) {
       (async () => {
         try {
-          await MediaLibrary.requestPermissionsAsync();
-          await Notifications.requestPermissionsAsync();
+          if (MediaLibrary) {
+            const hasMedia = await MediaLibrary.getPermissionsAsync().catch(() => null);
+            if (hasMedia) await MediaLibrary.requestPermissionsAsync();
+          }
+          if (Notifications) {
+            const hasNotif = await Notifications.getPermissionsAsync().catch(() => null);
+            if (hasNotif) await Notifications.requestPermissionsAsync();
+          }
         } catch (e) {
-          console.log('Permission request failed', e);
+          console.log('Permission request skipped (native module may be missing)', e);
         }
       })();
     }
@@ -276,13 +321,21 @@ export function AppNavigator() {
         <Stack.Screen name="Credits" component={CreditsScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
-        <Stack.Screen name="HowToUse" component={HowToUseScreen} />
+        <Stack.Screen name="HowToUseGuide" component={HowToUseScreen} />
       </Stack.Navigator>
 
       <RatingModal 
         visible={showRating} 
         onClose={() => setShowRating(false)} 
         onRate={() => { setHasRated(true); setShowRating(false); }}
+        themeMode={themeMode}
+      />
+      <WhatsNewModal 
+        visible={showWhatsNew} 
+        onClose={() => {
+          setShowWhatsNew(false);
+          setLastSeenUpdateId(Updates.updateId || 'overhaul_v1');
+        }} 
         themeMode={themeMode}
       />
     </NavigationContainer>

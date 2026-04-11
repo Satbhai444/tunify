@@ -12,6 +12,7 @@ import {
   FlatList,
   Linking,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Updates from 'expo-updates';
 import { BlurView } from 'expo-blur';
@@ -89,7 +90,8 @@ function AvatarPicker({ selectedId, onSelect, themeMode }: { selectedId: string;
 }
 
 // ─── Main Settings Screen ───
-export function SettingsScreen({ navigation }: any) {
+export function SettingsScreen() {
+  const navigation = useNavigation<any>();
   const settings = useSettingsStore();
   const downloads = useLibraryStore((s) => s.downloads);
   const themeMode = settings.themeMode;
@@ -252,10 +254,18 @@ export function SettingsScreen({ navigation }: any) {
         <SettingItem icon="system-update" label="Check for Updates" themeMode={themeMode} onPress={async () => {
           try {
             const u = await Updates.checkForUpdateAsync();
-            Alert.alert(u.isAvailable ? 'Update available' : 'Up to date', u.isAvailable ? 'A new version is ready.' : 'You are on the latest version.');
+            if (u.isAvailable) {
+              await Updates.fetchUpdateAsync();
+              Alert.alert('Update available', 'A new version is ready. Restart now to apply?', [
+                { text: 'Later', style: 'cancel' },
+                { text: 'Restart Now', onPress: () => Updates.reloadAsync() }
+              ]);
+            } else {
+              Alert.alert('Up to date', 'You are on the latest version.');
+            }
           } catch { Alert.alert('Error', 'Update check failed.'); }
         }} />
-        <SettingItem icon="help-outline" label="How to Use Tunify" themeMode={themeMode} onPress={() => navigation.navigate('HowToUse')} />
+        <SettingItem icon="help-outline" label="How to Use Tunify" themeMode={themeMode} onPress={() => navigation.navigate('HowToUseGuide')} />
         <SettingItem icon="description" label="Terms of Service" themeMode={themeMode} onPress={() => navigation.navigate('Terms')} />
         <SettingItem icon="privacy-tip" label="Privacy Policy" themeMode={themeMode} onPress={() => navigation.navigate('PrivacyPolicy')} />
         <SettingItem icon="code" label="About Developer" themeMode={themeMode} onPress={() => setAboutModalVisible(true)} />
@@ -356,7 +366,7 @@ export function SettingsScreen({ navigation }: any) {
                 <Text style={[styles.devRole, { color: theme.primary }]}>Master of Code & Aesthetics</Text>
                 
                 <View style={[styles.praiseSection, { backgroundColor: themeMode === 'dark' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(99, 102, 241, 0.05)' }]}>
-                  <Text style={[styles.praiseTitle, { color: theme.primary }]}>WAH DEVELOPER WAH! 🚀</Text>
+                  <Text style={[styles.praiseTitle, { color: theme.primary }]}>Sallute to  WAH! 🚀</Text>
                   <Text style={[styles.devBio, { color: theme.onSurface }]}>
                     Building an app like **Tunify** requires more than just code; it requires pure passion, thousands of hours of dedication, and an eye for perfection. 
                     Darshan has meticulously crafted every animation, every glass effect, and every line of logic to ensure you get the most premium music experience possible.
@@ -454,6 +464,42 @@ export function SettingsScreen({ navigation }: any) {
               ))}
             </View>
             <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setTimerModalVisible(false)}>
+              <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════ Quality Modal ═══════ */}
+      <Modal visible={qualityModalVisible} animationType="slide" transparent statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={[styles.modalHandle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
+            <Text style={[styles.modalTitle, { color: theme.onSurface }]}>Streaming Quality</Text>
+            <View style={styles.eqGrid}>
+              {[
+                { id: 'low', label: 'Low (96kbps)', icon: 'speed' },
+                { id: 'normal', label: 'Normal (160kbps)', icon: 'equalizer' },
+                { id: 'high', label: 'High (320kbps)', icon: 'high-quality' },
+              ].map((q) => (
+                <TouchableOpacity
+                  key={q.id}
+                  style={[styles.eqItem, { width: '100%', marginBottom: 12, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
+                  onPress={() => { settings.setAudioQuality(q.id as any); setPreferredQuality(QUALITY_LABELS[q.id as AudioQuality]); setQualityModalVisible(false); }}
+                >
+                  <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.eqIcon}>
+                    <MaterialIcon name={q.icon as any} color="#FFF" size={24} />
+                  </LinearGradient>
+                  <Text style={[styles.eqLabel, { color: theme.onSurface }]}>{q.label}</Text>
+                  {settings.audioQuality === q.id && (
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <MaterialIcon name="check-circle" color={theme.primary} size={24} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 10, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setQualityModalVisible(false)}>
               <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
