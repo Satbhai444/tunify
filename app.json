@@ -22,7 +22,7 @@
         "backgroundColor": "#0e0e0e"
       },
       "edgeToEdgeEnabled": true,
-      "newArchEnabled": false,
+      "newArchEnabled": true,
       "package": "com.tunify.app",
       "versionCode": 2,
       "permissions": [
