@@ -1,15 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Animated, Easing } from 'react-native';
 import { Image } from 'expo-image';
-import { colors, typography, spacing, radii } from '../theme';
+import { darkColors, lightColors, typography } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
-import { LinearGradient } from 'expo-linear-gradient';
 import { usePlayerStore } from '../stores';
+import { useSettingsStore } from '../stores/settingsStore';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BAR_COUNT = 4;
 
-function WaveformBars({ isPlaying }: { isPlaying: boolean }) {
+function WaveformBars({ isPlaying, color }: { isPlaying: boolean; color: string }) {
   const bars = useRef(
     Array.from({ length: BAR_COUNT }, () => new Animated.Value(0.3)),
   ).current;
@@ -59,7 +58,7 @@ function WaveformBars({ isPlaying }: { isPlaying: boolean }) {
           key={i}
           style={[
             waveStyles.bar,
-            { transform: [{ scaleY: bar }] },
+            { backgroundColor: color, transform: [{ scaleY: bar }] },
           ]}
         />
       ))}
@@ -79,7 +78,6 @@ const waveStyles = StyleSheet.create({
     width: 3,
     height: 18,
     borderRadius: 1.5,
-    backgroundColor: colors.primary,
   },
 });
 
@@ -92,14 +90,28 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
   const togglePlayPause = usePlayerStore((s) => s.togglePlayPause);
   const skipNext = usePlayerStore((s) => s.skipNext);
 
+  const { themeMode } = useSettingsStore();
+  const theme = themeMode === 'dark' ? darkColors : lightColors;
+
   if (!currentTrack) return null;
 
   const progress = duration > 0 ? position / duration : 0;
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.95}>
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+    <TouchableOpacity
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.outline,
+          shadowColor: themeMode === 'dark' ? '#000' : '#B8A990',
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.95}
+    >
+      <View style={[styles.progressBar, { backgroundColor: theme.surfaceContainer }]}>
+        <View style={[styles.progressFill, { backgroundColor: theme.primary, width: `${progress * 100}%` }]} />
       </View>
       <View style={styles.content}>
         <View style={styles.artworkContainer}>
@@ -109,23 +121,15 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
             contentFit="cover"
             transition={200}
           />
-          {isPlaying && (
-            <LinearGradient
-              colors={['rgba(255,255,255,0.2)', 'transparent']}
-              style={StyleSheet.absoluteFill}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            />
-          )}
         </View>
         <View style={styles.info}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {isPlaying && <WaveformBars isPlaying={isPlaying} />}
-            <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>
+            {isPlaying && <WaveformBars isPlaying={isPlaying} color={theme.primary} />}
+            <Text style={[styles.title, { color: theme.onSurface, flex: 1 }]} numberOfLines={1}>
               {String(currentTrack.title)}
             </Text>
           </View>
-          <Text style={styles.artist} numberOfLines={1}>
+          <Text style={[styles.artist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
             {String(currentTrack.artist)}
           </Text>
         </View>
@@ -138,12 +142,12 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {isBuffering ? (
-              <ActivityIndicator size={24} color={colors.onSurface} />
+              <ActivityIndicator size={24} color={theme.onSurface} />
             ) : (
               <MaterialIcon
                 name={isPlaying ? 'pause' : 'play-arrow'}
                 size={30}
-                color={colors.onSurface}
+                color={theme.onSurface}
               />
             )}
           </TouchableOpacity>
@@ -154,7 +158,7 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <MaterialIcon name="skip-next" size={26} color={colors.onSurface} />
+            <MaterialIcon name="skip-next" size={26} color={theme.onSurface} />
           </TouchableOpacity>
         </View>
       </View>
@@ -164,24 +168,19 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(28,28,30,0.98)',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   progressBar: {
-    height: 2,
-    backgroundColor: colors.surfaceContainer,
+    height: 2.5,
   },
   progressFill: {
-    height: 2,
-    backgroundColor: colors.primary,
+    height: 2.5,
   },
   content: {
     flexDirection: 'row',
@@ -192,7 +191,7 @@ const styles = StyleSheet.create({
   artworkContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   artwork: {
@@ -204,12 +203,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.titleSm,
-    color: colors.onSurface,
     fontWeight: '700',
   },
   artist: {
     ...typography.bodySm,
-    color: colors.onSurfaceVariant,
     marginTop: 1,
   },
   controls: {

@@ -15,9 +15,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Updates from 'expo-updates';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, darkColors, lightColors, typography } from '../theme';
+import { darkColors, lightColors, typography } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { useSettingsStore, AudioQuality, AVATAR_OPTIONS } from '../stores/settingsStore';
 import { useLibraryStore, usePlayerStore } from '../stores';
@@ -33,15 +32,19 @@ const QUALITY_LABELS: Record<AudioQuality, string> = {
 function SettingItem({ icon, label, value, onPress, toggle, onToggle, themeMode }: any) {
   const theme = themeMode === 'dark' ? darkColors : lightColors;
   return (
-    <View style={[styles.glassItemContainer, { borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-      <BlurView intensity={20} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.glassItemBlur}>
+    <View style={[styles.settingItemContainer, { 
+      backgroundColor: theme.surface,
+      borderColor: themeMode === 'dark' ? theme.outline : 'transparent',
+      borderWidth: themeMode === 'dark' ? 1 : 0,
+      shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+    }]}>
         <TouchableOpacity
           style={styles.settingRow}
           onPress={onPress}
           activeOpacity={toggle !== undefined ? 1 : 0.7}
           disabled={toggle !== undefined}
         >
-          <View style={[styles.iconCircle, { backgroundColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.1)' : 'rgba(99, 102, 241, 0.1)' }]}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.primaryContainer }]}>
             <MaterialIcon name={icon} size={20} color={theme.primary} />
           </View>
           <Text style={[styles.settingLabel, { color: theme.onSurface }]}>{label}</Text>
@@ -49,7 +52,7 @@ function SettingItem({ icon, label, value, onPress, toggle, onToggle, themeMode 
             <Switch
               value={toggle}
               onValueChange={onToggle}
-              trackColor={{ false: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', true: theme.primary }}
+              trackColor={{ false: theme.surfaceContainerHighest, true: theme.primary }}
               thumbColor="#FFF"
             />
           ) : (
@@ -59,7 +62,6 @@ function SettingItem({ icon, label, value, onPress, toggle, onToggle, themeMode 
             </View>
           )}
         </TouchableOpacity>
-      </BlurView>
     </View>
   );
 }
@@ -164,10 +166,9 @@ export function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={themeMode === 'dark' ? ['#4F39CC', '#0D0D1F'] : ['#E0E7FF', '#F8F9FE']} style={StyleSheet.absoluteFill} />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.surfaceContainer }]}>
           <MaterialIcon name="arrow-back" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Settings</Text>
@@ -176,8 +177,13 @@ export function SettingsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Profile Card */}
         <TouchableOpacity activeOpacity={0.8} onPress={handleOpenProfile}>
-          <View style={[styles.glassItemContainer, { borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-            <BlurView intensity={30} tint={themeMode === 'dark' ? 'dark' : 'light'} style={[styles.glassItemBlur, styles.profileCard]}>
+          <View style={[styles.settingItemContainer, {
+            backgroundColor: theme.surface,
+            borderColor: themeMode === 'dark' ? theme.outline : 'transparent',
+            borderWidth: themeMode === 'dark' ? 1 : 0,
+            shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+          }]}>
+            <View style={styles.profileCard}>
               <LinearGradient colors={selectedAvatar.bg} style={styles.avatar}>
                 <Text style={styles.avatarText}>{selectedAvatar.emoji}</Text>
               </LinearGradient>
@@ -185,10 +191,10 @@ export function SettingsScreen() {
                 <Text style={[styles.profileName, { color: theme.onSurface }]}>{settings.userName}</Text>
                 <Text style={[styles.profileEmail, { color: theme.onSurfaceVariant }]}>{settings.userEmail || 'Tap to set your profile'}</Text>
               </View>
-              <View style={[styles.editBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+              <View style={[styles.editBtn, { backgroundColor: theme.surfaceContainer }]}>
                 <MaterialIcon name="edit" size={18} color={theme.onSurface} />
               </View>
-            </BlurView>
+            </View>
           </View>
         </TouchableOpacity>
 
@@ -272,14 +278,14 @@ export function SettingsScreen() {
 
         {/* Logout */}
         <TouchableOpacity
-          style={[styles.logoutButton, { backgroundColor: themeMode === 'dark' ? 'rgba(255, 75, 75, 0.05)' : 'rgba(239, 68, 68, 0.05)', borderColor: themeMode === 'dark' ? 'rgba(255, 75, 75, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}
+          style={[styles.logoutButton, { backgroundColor: theme.error + '10', borderColor: theme.error + '20' }]}
           onPress={async () => {
             await AsyncStorage.removeItem('tunify_onboarding_done');
             navigation.replace('Welcome');
           }}
         >
-          <MaterialIcon name="logout" size={20} color={themeMode === 'dark' ? '#FF4B4B' : '#EF4444'} />
-          <Text style={[styles.logoutText, { color: themeMode === 'dark' ? '#FF4B4B' : '#EF4444' }]}>Reset & Log Out</Text>
+          <MaterialIcon name="logout" size={20} color={theme.error} />
+          <Text style={[styles.logoutText, { color: theme.error }]}>Reset & Log Out</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
@@ -295,33 +301,33 @@ export function SettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={[styles.modalHandle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
+              <View style={[styles.modalHandle, { backgroundColor: theme.outline }]} />
               <Text style={[styles.modalTitle, { color: theme.onSurface }]}>Edit Profile</Text>
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>CHOOSE AVATAR</Text>
               <AvatarPicker selectedId={editAvatarId} onSelect={setEditAvatarId} themeMode={themeMode} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>DISPLAY NAME</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editName} onChangeText={setEditName} placeholder="Your name" placeholderTextColor={theme.onSurfaceVariant} maxLength={30} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editName} onChangeText={setEditName} placeholder="Your name" placeholderTextColor={theme.onSurfaceVariant} maxLength={30} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>EMAIL</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editEmail} onChangeText={setEditEmail} placeholder="your@email.com" placeholderTextColor={theme.onSurfaceVariant} keyboardType="email-address" autoCapitalize="none" maxLength={50} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editEmail} onChangeText={setEditEmail} placeholder="your@email.com" placeholderTextColor={theme.onSurfaceVariant} keyboardType="email-address" autoCapitalize="none" maxLength={50} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>BIO</Text>
-              <TextInput style={[styles.textInput, { height: 80, textAlignVertical: 'top', color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editBio} onChangeText={setEditBio} placeholder="Tell us about yourself..." placeholderTextColor={theme.onSurfaceVariant} multiline maxLength={150} />
+              <TextInput style={[styles.textInput, { height: 80, textAlignVertical: 'top', color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editBio} onChangeText={setEditBio} placeholder="Tell us about yourself..." placeholderTextColor={theme.onSurfaceVariant} multiline maxLength={150} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>PHONE</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editPhone} onChangeText={setEditPhone} placeholder="+91 XXXXX XXXXX" placeholderTextColor={theme.onSurfaceVariant} keyboardType="phone-pad" maxLength={15} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editPhone} onChangeText={setEditPhone} placeholder="+91 XXXXX XXXXX" placeholderTextColor={theme.onSurfaceVariant} keyboardType="phone-pad" maxLength={15} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>DATE OF BIRTH</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editDob} onChangeText={setEditDob} placeholder="DD/MM/YYYY" placeholderTextColor={theme.onSurfaceVariant} maxLength={10} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editDob} onChangeText={setEditDob} placeholder="DD/MM/YYYY" placeholderTextColor={theme.onSurfaceVariant} maxLength={10} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>GENDER</Text>
               <View style={styles.genderRow}>
                 {['Male', 'Female', 'Other'].map((g) => (
                   <TouchableOpacity
                     key={g}
-                    style={[styles.genderChip, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, editGender === g && { backgroundColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)', borderColor: theme.primary }]}
+                    style={[styles.genderChip, { backgroundColor: theme.surfaceContainer, borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, editGender === g && { backgroundColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)', borderColor: theme.primary }]}
                     onPress={() => setEditGender(g)}
                   >
                     <Text style={[styles.genderChipText, { color: theme.onSurfaceVariant }, editGender === g && { color: theme.primary }]}>{g}</Text>
@@ -330,16 +336,16 @@ export function SettingsScreen() {
               </View>
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>LOCATION</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editLocation} onChangeText={setEditLocation} placeholder="City, Country" placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editLocation} onChangeText={setEditLocation} placeholder="City, Country" placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>FAVORITE GENRE</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editGenre} onChangeText={setEditGenre} placeholder="Pop, Rock, Bollywood..." placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editGenre} onChangeText={setEditGenre} placeholder="Pop, Rock, Bollywood..." placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
 
               <Text style={[styles.inputLabel, { color: theme.onSurfaceVariant }]}>COUNTRY</Text>
-              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.2)' : 'rgba(99, 102, 241, 0.2)' }]} value={editCountry} onChangeText={setEditCountry} placeholder="Your country" placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
+              <TextInput style={[styles.textInput, { color: theme.onSurface, backgroundColor: theme.surfaceContainer, borderColor: theme.outline }]} value={editCountry} onChangeText={setEditCountry} placeholder="Your country" placeholderTextColor={theme.onSurfaceVariant} maxLength={40} />
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setProfileModalVisible(false)}>
+                <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: theme.surfaceContainer }]} onPress={() => setProfileModalVisible(false)}>
                   <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.modalSaveBtn, { backgroundColor: theme.primary }]} onPress={handleSaveProfile}>
@@ -359,13 +365,13 @@ export function SettingsScreen() {
             <View style={[styles.modalHandle, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.devAvatar}>
+                <LinearGradient colors={['#C8A97E', '#A68B5B']} style={styles.devAvatar}>
                   <Text style={{ fontSize: 44 }}>👨‍💻</Text>
                 </LinearGradient>
                 <Text style={[styles.devName, { color: theme.onSurface }]}>The Tunify Team</Text>
                 <Text style={[styles.devRole, { color: theme.primary }]}>Master of Code & Aesthetics</Text>
                 
-                <View style={[styles.praiseSection, { backgroundColor: themeMode === 'dark' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(99, 102, 241, 0.05)' }]}>
+                <View style={[styles.praiseSection, { backgroundColor: theme.primaryContainer }]}>
                   <Text style={[styles.praiseTitle, { color: theme.primary }]}>Premium Experience 🚀</Text>
                   <Text style={[styles.devBio, { color: theme.onSurface }]}>
                     Building an app like **tunify** requires more than just code; it requires pure passion, thousands of hours of dedication, and an eye for perfection. 
@@ -373,7 +379,7 @@ export function SettingsScreen() {
                   </Text>
                 </View>
 
-                <View style={[styles.contactCard, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
+                <View style={[styles.contactCard, { backgroundColor: theme.surfaceContainer }]}>
                   <Text style={[styles.inputLabel, { color: theme.primary, marginTop: 0 }]}>GET IN TOUCH</Text>
                   <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('https://tunify-music.app/support')}>
                     <MaterialIcon name="email" size={20} color={theme.onSurfaceVariant} />
@@ -391,7 +397,7 @@ export function SettingsScreen() {
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={[styles.modalCancelBtn, { width: '100%', marginBottom: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setAboutModalVisible(false)}>
+            <TouchableOpacity style={[styles.modalCancelBtn, { width: '100%', marginBottom: 20, backgroundColor: theme.surfaceContainer }]} onPress={() => setAboutModalVisible(false)}>
               <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -416,14 +422,14 @@ export function SettingsScreen() {
                   style={[styles.eqItem, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
                   onPress={() => { applyEqPreset(eq.id as any); setEqModalVisible(false); }}
                 >
-                  <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.eqIcon}>
+                  <LinearGradient colors={['#C8A97E', '#A68B5B']} style={styles.eqIcon}>
                     <MaterialIcon name={eq.icon as any} color="#FFF" size={24} />
                   </LinearGradient>
                   <Text style={[styles.eqLabel, { color: theme.onSurface }]}>{eq.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setEqModalVisible(false)}>
+            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: theme.surfaceContainer }]} onPress={() => setEqModalVisible(false)}>
               <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -454,7 +460,7 @@ export function SettingsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setTimerModalVisible(false)}>
+            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 20, backgroundColor: theme.surfaceContainer }]} onPress={() => setTimerModalVisible(false)}>
               <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -478,7 +484,7 @@ export function SettingsScreen() {
                   style={[styles.eqItem, { width: '100%', marginBottom: 12, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
                   onPress={() => { settings.setAudioQuality(q.id as any); setPreferredQuality(QUALITY_LABELS[q.id as AudioQuality]); setQualityModalVisible(false); }}
                 >
-                  <LinearGradient colors={['#7C3AED', '#4F39CC']} style={styles.eqIcon}>
+                  <LinearGradient colors={['#C8A97E', '#A68B5B']} style={styles.eqIcon}>
                     <MaterialIcon name={q.icon as any} color="#FFF" size={24} />
                   </LinearGradient>
                   <Text style={[styles.eqLabel, { color: theme.onSurface }]}>{q.label}</Text>
@@ -490,7 +496,7 @@ export function SettingsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 10, backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setQualityModalVisible(false)}>
+            <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 10, backgroundColor: theme.surfaceContainer }]} onPress={() => setQualityModalVisible(false)}>
               <Text style={[styles.modalCancelText, { color: theme.onSurfaceVariant, textAlign: 'center' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -506,8 +512,16 @@ const styles = StyleSheet.create({
   backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', borderRadius: 20 },
   headerTitle: { ...typography.headlineSm, marginLeft: 16, fontWeight: '800' },
   scrollContent: { paddingHorizontal: 20 },
-  glassItemContainer: { borderRadius: 24, overflow: 'hidden', marginBottom: 12, borderWidth: 1 },
-  glassItemBlur: { padding: 16 },
+  settingItemContainer: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 10,
+    padding: 16,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 28 },

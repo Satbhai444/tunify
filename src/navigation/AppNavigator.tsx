@@ -5,8 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { BlurView } from 'expo-blur';
-import { colors } from '../theme';
+import { darkColors, lightColors } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { MiniPlayer } from '../components/MiniPlayer';
 import {
@@ -57,10 +56,10 @@ function TabBarIcon({ name, color, size }: { name: string; color: string; size: 
 function HomeTabs() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const { themeMode } = useSettingsStore();
-  const nav = useNavigation<any>();
+  const theme = themeMode === 'dark' ? darkColors : lightColors;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -70,41 +69,33 @@ function HomeTabs() {
             left: 0,
             right: 0,
             height: 80,
-            backgroundColor: themeMode === 'dark' ? '#16162E' : '#FFFFFF',
-            borderTopWidth: 0,
-            elevation: 10,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
+            backgroundColor: theme.tabBarBg,
+            borderTopWidth: 1,
+            borderTopColor: theme.tabBarBorder,
+            elevation: 0,
+            shadowOpacity: 0,
             paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+            paddingTop: 8,
           },
-          tabBarBackground: () => (
-            <BlurView
-              intensity={Platform.OS === 'ios' ? 40 : 100}
-              tint={themeMode === 'dark' ? 'dark' : 'light'}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                opacity: 0.98,
-                borderTopWidth: 1,
-                borderColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-              }}
-            />
-          ),
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.onSurfaceVariant,
-          tabBarShowLabel: false,
+          tabBarActiveTintColor: theme.primary,
+          tabBarInactiveTintColor: theme.onSurfaceVariant,
+          tabBarShowLabel: true,
+          tabBarLabelStyle: {
+            fontFamily: 'BebasNote',
+            fontSize: 10,
+            fontWeight: '600',
+            letterSpacing: 0.5,
+            marginTop: 2,
+          },
         }}
       >
         <Tab.Screen
           name="Home"
           component={HomeScreen}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={{ alignItems: 'center' }}>
-                <TabBarIcon name="home-filled" color={color} size={28} />
-                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
-              </View>
+            tabBarLabel: 'Home',
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon name={focused ? 'home-filled' : 'home'} color={color} size={26} />
             ),
           }}
           listeners={{
@@ -115,11 +106,9 @@ function HomeTabs() {
           name="Discover"
           component={DiscoverScreen}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={{ alignItems: 'center' }}>
-                <TabBarIcon name="explore" color={color} size={28} />
-                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
-              </View>
+            tabBarLabel: 'Discover',
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon name={focused ? 'explore' : 'explore'} color={color} size={26} />
             ),
           }}
           listeners={{
@@ -130,40 +119,22 @@ function HomeTabs() {
           name="Search"
           component={SearchScreen}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={{ 
-                width: 54, 
-                height: 54, 
-                borderRadius: 27, 
-                backgroundColor: focused ? colors.primary : 'rgba(255, 255, 255, 0.05)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: 10,
-                borderWidth: 1.5,
-                borderColor: focused ? colors.primary : 'rgba(255,255,255,0.1)',
-                elevation: focused ? 10 : 0,
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: focused ? 0.3 : 0,
-                shadowRadius: 8,
-              }}>
-                <TabBarIcon name="search" color={focused ? '#FFF' : color} size={28} />
-              </View>
+            tabBarLabel: 'Search',
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon name="search" color={color} size={26} />
             ),
           }}
           listeners={{
-            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+            tabPress: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
           }}
         />
         <Tab.Screen
           name="History"
           component={HistoryScreen}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={{ alignItems: 'center' }}>
-                <TabBarIcon name="history" color={color} size={28} />
-                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
-              </View>
+            tabBarLabel: 'History',
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon name="history" color={color} size={26} />
             ),
           }}
           listeners={{
@@ -174,11 +145,9 @@ function HomeTabs() {
           name="Library"
           component={LibraryScreen}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={{ alignItems: 'center' }}>
-                <TabBarIcon name="library-music" color={color} size={28} />
-                {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginTop: 4 }} />}
-              </View>
+            tabBarLabel: 'Library',
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon name={focused ? 'library-music' : 'library-music'} color={color} size={26} />
             ),
           }}
           listeners={{
@@ -205,6 +174,8 @@ export function AppNavigator() {
   const [showWhatsNew, setShowWhatsNew] = React.useState(false);
   const [currentRoute, setCurrentRoute] = React.useState<string | null>(null);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
+
+  const theme = themeMode === 'dark' ? darkColors : lightColors;
 
   // Initialize TrackPlayer and Startup Logic
   React.useEffect(() => {
@@ -308,7 +279,7 @@ export function AppNavigator() {
           <Stack.Navigator
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
+              contentStyle: { backgroundColor: theme.background },
               animation: 'fade',
             }}
           >

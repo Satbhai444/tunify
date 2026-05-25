@@ -93,7 +93,7 @@ async function persist(partial: Partial<SettingsState>) {
 }
 
 const DEFAULTS = {
-  themeMode: 'dark' as ThemeMode,
+  themeMode: 'light' as ThemeMode,
   audioQuality: 'normal' as AudioQuality,
   crossfadeEnabled: false,
   crossfadeDuration: 5,

@@ -29,17 +29,17 @@ const SLIDES: Slide[] = [
   {
     id: '1',
     icon: 'music-note',
-    iconColor: '#72fe8f',
-    gradient: ['#0a2e14', '#0e0e0e'],
-    title: 'Welcome to tunify',
+    iconColor: '#93032E',
+    gradient: ['#1A0307', '#0E0E0E'],
+    title: 'Welcome to Tunify',
     subtitle: 'Unlimited premium music streaming with Bollywood, Hollywood, Punjabi, K-Pop, and more — No Ads, Ever.',
     highlight: 'Premium Experience',
   },
   {
     id: '2',
     icon: 'auto-awesome',
-    iconColor: '#a78bfa',
-    gradient: ['#1a0a2e', '#0e0e0e'],
+    iconColor: '#7F011F',
+    gradient: ['#240A10', '#0E0E0E'],
     title: 'Personalized for You',
     subtitle: 'The more you listen, the better your recommendations get. Quick Picks, Made for You, and Discover — all tailored to your taste.',
     highlight: 'Smart recommendations',
@@ -47,8 +47,8 @@ const SLIDES: Slide[] = [
   {
     id: '3',
     icon: 'lyrics',
-    iconColor: '#f59e0b',
-    gradient: ['#2e1a0a', '#0e0e0e'],
+    iconColor: '#4A0217',
+    gradient: ['#301118', '#0E0E0E'],
     title: 'Sing Along',
     subtitle: 'Full-screen synced lyrics, equalizer, song radio, and a beautiful player experience.',
     highlight: 'Lyrics & Equalizer',
@@ -56,8 +56,8 @@ const SLIDES: Slide[] = [
   {
     id: '4',
     icon: 'cloud-download',
-    iconColor: '#06b6d4',
-    gradient: ['#0a1a2e', '#0e0e0e'],
+    iconColor: '#93032E',
+    gradient: ['#1A0307', '#0E0E0E'],
     title: 'Listen Offline',
     subtitle: 'Download your favorite songs and listen anywhere — no internet needed.',
     highlight: 'Offline mode',
@@ -68,6 +68,31 @@ export function WelcomeScreen({ navigation }: any) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  // Animation values for current slide
+  const slideAnims = useRef(SLIDES.map(() => ({
+    iconScale: new Animated.Value(0),
+    textOpacity: new Animated.Value(0),
+    textTranslateY: new Animated.Value(20),
+  }))).current;
+
+  React.useEffect(() => {
+    // Trigger animation for the current slide
+    SLIDES.forEach((_, i) => {
+      if (i === currentIndex) {
+        Animated.parallel([
+          Animated.spring(slideAnims[i].iconScale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true }),
+          Animated.timing(slideAnims[i].textOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(slideAnims[i].textTranslateY, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ]).start();
+      } else {
+        // Reset others
+        slideAnims[i].iconScale.setValue(0.5);
+        slideAnims[i].textOpacity.setValue(0);
+        slideAnims[i].textTranslateY.setValue(20);
+      }
+    });
+  }, [currentIndex]);
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
@@ -81,29 +106,33 @@ export function WelcomeScreen({ navigation }: any) {
     navigation.replace('Onboarding');
   };
 
-  const renderSlide = ({ item, index }: { item: Slide; index: number }) => (
-    <View style={styles.slide}>
-      <LinearGradient colors={item.gradient} style={StyleSheet.absoluteFill} />
+  const renderSlide = ({ item, index }: { item: Slide; index: number }) => {
+    const anims = slideAnims[index];
+    
+    return (
+      <View style={styles.slide}>
+        <LinearGradient colors={item.gradient} style={StyleSheet.absoluteFill} />
 
-      {/* Icon Container */}
-      <View style={styles.iconArea}>
-        <View style={[styles.iconGlow, { backgroundColor: item.iconColor + '15' }]}>
-          <View style={[styles.iconCircle, { backgroundColor: item.iconColor + '20', borderColor: item.iconColor + '30' }]}>
-            <MaterialIcon name={item.icon as any} size={64} color={item.iconColor} />
+        {/* Icon Container with Animation */}
+        <Animated.View style={[styles.iconArea, { transform: [{ scale: anims.iconScale }] }]}>
+          <View style={[styles.iconGlow, { backgroundColor: item.iconColor + '15' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: item.iconColor + '20', borderColor: item.iconColor + '30' }]}>
+              <MaterialIcon name={item.icon as any} size={64} color={item.iconColor} />
+            </View>
           </View>
-        </View>
-      </View>
+        </Animated.View>
 
-      {/* Text Area */}
-      <View style={styles.textArea}>
-        <Text style={styles.slideTitle}>{item.title}</Text>
-        <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
-        <View style={[styles.highlightBadge, { backgroundColor: item.iconColor + '20' }]}>
-          <Text style={[styles.highlightText, { color: item.iconColor }]}>{item.highlight}</Text>
-        </View>
+        {/* Text Area with Animation */}
+        <Animated.View style={[styles.textArea, { opacity: anims.textOpacity, transform: [{ translateY: anims.textTranslateY }] }]}>
+          <Text style={styles.slideTitle}>{item.title}</Text>
+          <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
+          <View style={[styles.highlightBadge, { backgroundColor: item.iconColor + '20' }]}>
+            <Text style={[styles.highlightText, { color: item.iconColor }]}>{item.highlight}</Text>
+          </View>
+        </Animated.View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -207,12 +236,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   slideTitle: {
-    fontSize: 32,
-    fontWeight: '800',
+    ...typography.displaySm,
     color: colors.onSurface,
     textAlign: 'center',
     marginBottom: 16,
-    letterSpacing: 0.5,
   },
   slideSubtitle: {
     ...typography.bodyMd,

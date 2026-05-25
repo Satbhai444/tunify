@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Alert, Dimensions, ScrollView, TextInput } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, darkColors, lightColors, typography, spacing, radii } from '../theme';
+import { darkColors, lightColors, typography, spacing, radii } from '../theme';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { FirstTimeTooltip } from '../components/FirstTimeTooltip';
@@ -11,40 +10,41 @@ import { AVATAR_OPTIONS } from '../stores/settingsStore';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-function GlassLibraryItem({ item, onPress, onLongPress, themeMode }: { item: any; onPress: () => void; onLongPress?: () => void; themeMode: 'dark' | 'light' }) {
+function LibraryItem({ item, onPress, onLongPress, themeMode }: { item: any; onPress: () => void; onLongPress?: () => void; themeMode: 'dark' | 'light' }) {
   const theme = themeMode === 'dark' ? darkColors : lightColors;
   return (
-    <View style={[styles.glassItemContainer, { borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-      <BlurView intensity={themeMode === 'dark' ? 20 : 40} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.glassItemBlur}>
-        <TouchableOpacity 
-          style={styles.listItem} 
-          onPress={onPress} 
-          onLongPress={onLongPress}
-          activeOpacity={0.7}
-        >
-          {item.type === 'gradient' ? (
-            <LinearGradient colors={['#764BA2', '#667EEA']} style={styles.itemArt}>
-              <MaterialIcon name="favorite" size={24} color="#FFF" />
-            </LinearGradient>
-          ) : item.type === 'download' ? (
-            <LinearGradient colors={['#FF9A9E', '#FAD0C4']} style={styles.itemArt}>
-              <MaterialIcon name="download-for-offline" size={24} color="#FFF" />
-            </LinearGradient>
-          ) : (
-            <View style={[styles.itemArt, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-              <MaterialIcon name={item.type === 'playlist' ? 'playlist-play' : 'library-music'} size={24} color={theme.primary} />
-            </View>
-          )}
+    <TouchableOpacity
+      style={[styles.listItem, {
+        backgroundColor: theme.surface,
+        borderColor: themeMode === 'dark' ? theme.outline : 'transparent',
+        borderWidth: themeMode === 'dark' ? 1 : 0,
+        shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+      }]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
+      {item.type === 'gradient' ? (
+        <LinearGradient colors={['#C8A97E', '#A68B5B']} style={styles.itemArt}>
+          <MaterialIcon name="favorite" size={24} color="#FFF" />
+        </LinearGradient>
+      ) : item.type === 'download' ? (
+        <LinearGradient colors={['#D4AA70', '#B8956A']} style={styles.itemArt}>
+          <MaterialIcon name="download-for-offline" size={24} color="#FFF" />
+        </LinearGradient>
+      ) : (
+        <View style={[styles.itemArt, { backgroundColor: theme.surfaceContainer }]}>
+          <MaterialIcon name={item.type === 'playlist' ? 'playlist-play' : 'library-music'} size={24} color={theme.primary} />
+        </View>
+      )}
 
-          <View style={styles.itemInfo}>
-            <Text style={[styles.itemTitle, { color: theme.onSurface }]} numberOfLines={1}>{item.title}</Text>
-            <Text style={[styles.itemSubtitle, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{item.subtitle}</Text>
-          </View>
-          
-          <MaterialIcon name="chevron-right" size={24} color={theme.onSurfaceVariant} />
-        </TouchableOpacity>
-      </BlurView>
-    </View>
+      <View style={styles.itemInfo}>
+        <Text style={[styles.itemTitle, { color: theme.onSurface }]} numberOfLines={1}>{item.title}</Text>
+        <Text style={[styles.itemSubtitle, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{item.subtitle}</Text>
+      </View>
+      
+      <MaterialIcon name="chevron-right" size={24} color={theme.onSurfaceVariant} />
+    </TouchableOpacity>
   );
 }
 
@@ -125,14 +125,9 @@ export function LibraryScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={themeMode === 'dark' ? ['#2D1B69', '#16162E', theme.background] : ['#EEF2FF', '#FFFFFF', theme.background]}
-        style={StyleSheet.absoluteFill}
-      />
-      
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Text style={[styles.pageTitle, { color: theme.onSurface }]}>Library</Text>
+          <Text style={[styles.pageTitle, { color: theme.onSurface }]}>Your Library</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
              <LinearGradient colors={selectedAvatar.bg} style={styles.avatarCircle}>
                 <Text style={{ fontSize: 18 }}>{selectedAvatar.emoji}</Text>
@@ -141,22 +136,23 @@ export function LibraryScreen({ navigation }: any) {
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchWrapper}>
-          <BlurView intensity={themeMode === 'dark' ? 30 : 50} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.searchBlur}>
-            <MaterialIcon name="search" size={22} color={theme.onSurfaceVariant} style={{ marginLeft: 12 }} />
-            <TextInput
-              style={[styles.searchInput, { color: theme.onSurface }]}
-              placeholder="Search playlists, liked songs..."
-              placeholderTextColor={theme.onSurfaceVariant}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialIcon name="close" size={20} color={theme.onSurfaceVariant} style={{ marginRight: 12 }} />
-              </TouchableOpacity>
-            )}
-          </BlurView>
+        <View style={[styles.searchBar, {
+          backgroundColor: theme.surfaceContainer,
+          borderColor: theme.outline,
+        }]}>
+          <MaterialIcon name="search" size={22} color={theme.onSurfaceVariant} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.onSurface }]}
+            placeholder="Search playlists, liked songs..."
+            placeholderTextColor={theme.onSurfaceVariant}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <MaterialIcon name="close" size={20} color={theme.onSurfaceVariant} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Filter Chips */}
@@ -164,7 +160,10 @@ export function LibraryScreen({ navigation }: any) {
           {filters.map((f) => (
             <TouchableOpacity
               key={f}
-              style={[styles.chip, activeFilter === f && { backgroundColor: theme.primary, borderColor: 'transparent' }]}
+              style={[styles.chip, {
+                backgroundColor: activeFilter === f ? theme.primary : theme.surfaceContainer,
+                borderColor: activeFilter === f ? 'transparent' : theme.outline,
+              }]}
               onPress={() => setActiveFilter(f)}
             >
               <Text style={[styles.chipText, { color: activeFilter === f ? '#FFF' : theme.onSurfaceVariant }]}>{f}</Text>
@@ -183,7 +182,7 @@ export function LibraryScreen({ navigation }: any) {
             {recentlyPlayed.length > 0 && !searchQuery && activeFilter === 'All' && (
               <View style={styles.recentsSection}>
                 <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Jump Back In</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
                   {recentlyPlayed.slice(0, 10).map((item) => (
                     <TouchableOpacity 
                       key={`recent_${item.id}`}
@@ -191,9 +190,11 @@ export function LibraryScreen({ navigation }: any) {
                       onPress={() => { play(item, recentlyPlayed); navigation.navigate('Player'); }}
                       activeOpacity={0.8}
                     >
-                      <View style={styles.recentImageContainer}>
+                      <View style={[styles.recentImageContainer, {
+                        shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+                      }]}>
                          <Image source={{ uri: item.artwork }} style={styles.recentImage} />
-                         <View style={styles.recentPlayIdx}>
+                         <View style={[styles.recentPlayIdx, { backgroundColor: theme.primary }]}>
                             <MaterialIcon name="play-arrow" size={16} color="#FFF" />
                          </View>
                       </View>
@@ -208,13 +209,13 @@ export function LibraryScreen({ navigation }: any) {
           </>
         }
         renderItem={({ item }) => (
-          <GlassLibraryItem item={item} onPress={item.onPress} onLongPress={'onLongPress' in item ? (item as any).onLongPress : undefined} themeMode={themeMode} />
+          <LibraryItem item={item} onPress={item.onPress} onLongPress={'onLongPress' in item ? (item as any).onLongPress : undefined} themeMode={themeMode} />
         )}
         ListFooterComponent={<View style={{ marginTop: 20 }}><MadeInIndiaFooter /></View>}
       />
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+        style={[styles.fab, { backgroundColor: theme.primary }]}
         activeOpacity={0.9}
         onPress={() => {
           Alert.prompt('New Playlist', 'Enter name', [
@@ -229,9 +230,7 @@ export function LibraryScreen({ navigation }: any) {
           ]);
         }}
       >
-        <LinearGradient colors={['rgba(255,255,255,0.2)', 'transparent']} style={styles.fabBlur}>
-          <MaterialIcon name="add" size={32} color="#FFF" />
-        </LinearGradient>
+        <MaterialIcon name="add" size={32} color="#FFF" />
       </TouchableOpacity>
 
       <FirstTimeTooltip screen="library" />
@@ -243,30 +242,55 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 60, marginBottom: 8 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  pageTitle: { ...typography.displaySm, fontWeight: '900', letterSpacing: -1 },
+  pageTitle: { ...typography.headlineLg, fontWeight: '800' },
   avatarCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowOpacity: 0.2 },
-  searchWrapper: { marginBottom: 20, height: 50 },
-  searchBlur: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 25, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  searchInput: { flex: 1, ...typography.bodyLg, paddingHorizontal: 10, height: '100%' },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  searchInput: { flex: 1, ...typography.bodyMd, paddingHorizontal: 10, height: '100%' },
   filterRow: { gap: 10, paddingBottom: 10 },
-  chip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  chip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
   chipText: { ...typography.labelLg, fontWeight: '700' },
   listContent: { paddingHorizontal: 20, paddingBottom: 160 },
   sectionTitle: { ...typography.titleLg, fontWeight: '800', marginBottom: 16 },
   recentItem: { width: 120 },
-  recentImageContainer: { width: 120, height: 120, borderRadius: 28, overflow: 'hidden', marginBottom: 10, elevation: 5 },
+  recentImageContainer: {
+    width: 120, height: 120, borderRadius: 16, overflow: 'hidden', marginBottom: 10,
+    elevation: 4, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8,
+  },
   recentImage: { width: '100%', height: '100%' },
-  recentPlayIdx: { position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  recentPlayIdx: {
+    position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+  },
   recentTitle: { ...typography.labelLg, fontWeight: '700' },
-  recentArtist: { ...typography.bodySm, marginTop: 2, opacity: 0.7 },
-  glassItemContainer: { borderRadius: 28, overflow: 'hidden', marginBottom: 12, borderWidth: 1 },
-  glassItemBlur: { padding: 14 },
-  listItem: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  itemArt: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  recentArtist: { ...typography.bodySm, marginTop: 2 },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    padding: 14,
+    borderRadius: 20,
+    marginBottom: 10,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  itemArt: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   itemInfo: { flex: 1 },
   itemTitle: { ...typography.titleMd, fontWeight: '800' },
-  itemSubtitle: { ...typography.bodySm, marginTop: 4, opacity: 0.7 },
-  fab: { position: 'absolute', bottom: 170, right: 24, width: 64, height: 64, borderRadius: 32, overflow: 'hidden', elevation: 8 },
-  fabBlur: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  itemSubtitle: { ...typography.bodySm, marginTop: 4 },
+  fab: {
+    position: 'absolute', bottom: 170, right: 24, width: 60, height: 60, borderRadius: 30,
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 8, shadowColor: '#C8A97E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12,
+  },
   recentsSection: { marginBottom: 12 },
 });

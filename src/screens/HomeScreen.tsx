@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Image, RefreshControl, ActivityIndicator, ToastAndroid, Platform, Dimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, darkColors, lightColors, typography, spacing, radii } from '../theme';
+import { darkColors, lightColors, typography, spacing, radii } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { BottomSheetMenu } from '../components/BottomSheet';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
@@ -25,6 +24,14 @@ interface TrackSection {
   emoji?: string;
 }
 
+// ─── Helpers ───
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
 // ─── Reusable Components ───
 
 function SectionHeader({ title, onSeeAll, themeMode }: { title: string; onSeeAll?: () => void; themeMode: 'dark' | 'light' }) {
@@ -44,46 +51,52 @@ function SectionHeader({ title, onSeeAll, themeMode }: { title: string; onSeeAll
 function PlaylistPill({ playlist, onPress, themeMode }: { playlist: Playlist; onPress: () => void; themeMode: 'dark' | 'light' }) {
   const theme = themeMode === 'dark' ? darkColors : lightColors;
   return (
-    <TouchableOpacity style={[styles.playlistPill, { backgroundColor: theme.surfaceContainer }]} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={[styles.playlistPill, {
+        backgroundColor: theme.surface,
+        shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+        borderWidth: themeMode === 'dark' ? 1 : 0,
+        borderColor: theme.outline,
+      }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       <Image source={{ uri: playlist.artwork }} style={styles.playlistPillImage} />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)']}
-        style={styles.playlistPillOverlay}
-      >
-        <Text style={[styles.playlistPillTitle, { color: '#FFF' }]} numberOfLines={1}>{playlist.title}</Text>
+      <View style={styles.playlistPillInfo}>
+        <Text style={[styles.playlistPillTitle, { color: theme.onSurface }]} numberOfLines={2}>{playlist.title}</Text>
         <View style={styles.playlistPillMeta}>
-          <Text style={[styles.playlistPillSubtitle, { color: '#A5A5C7' }]} numberOfLines={1}>MUSIC FOR YOU</Text>
+          <Text style={[styles.playlistPillSubtitle, { color: theme.onSurfaceVariant }]} numberOfLines={1}>MUSIC FOR YOU</Text>
           <View style={[styles.playIconTiny, { backgroundColor: theme.primary }]}>
-             <MaterialIcon name="play-arrow" size={14} color="#FFF" />
+            <MaterialIcon name="play-arrow" size={14} color="#FFF" />
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 }
 
-function GlassTrackItem({ track, onPress, onMore, themeMode }: { track: Track; onPress: () => void; onMore?: () => void; themeMode: 'dark' | 'light' }) {
+function TrackItem({ track, onPress, onMore, themeMode }: { track: Track; onPress: () => void; onMore?: () => void; themeMode: 'dark' | 'light' }) {
   const theme = themeMode === 'dark' ? darkColors : lightColors;
   return (
-    <View style={[styles.glassTrackContainer, { borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-      <BlurView intensity={25} tint={themeMode === 'dark' ? 'dark' : 'light'} style={styles.glassTrackBlur}>
-        <TouchableOpacity style={styles.trackRow} onPress={onPress} activeOpacity={0.7}>
-          <View style={styles.trackArtworkContainer}>
-            <Image source={{ uri: track.artwork }} style={styles.trackRowImage} />
-            <View style={[styles.trackPlayButtonOverlay, { backgroundColor: themeMode === 'dark' ? 'rgba(123, 97, 255, 0.8)' : 'rgba(99, 102, 241, 0.8)' }]}>
-               <MaterialIcon name="play-arrow" size={18} color="#FFF" />
-            </View>
-          </View>
-          <View style={styles.trackRowInfo}>
-            <Text style={[styles.trackRowTitle, { color: theme.onSurface }]} numberOfLines={1}>{track.title}</Text>
-            <Text style={[styles.trackRowArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{track.artist}</Text>
-          </View>
-          <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10 }}>
-            <MaterialIcon name="more-horiz" size={20} color={theme.onSurfaceVariant} />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </BlurView>
-    </View>
+    <TouchableOpacity
+      style={[styles.trackItemContainer, {
+        backgroundColor: theme.surface,
+        borderColor: themeMode === 'dark' ? theme.outline : 'transparent',
+        borderWidth: themeMode === 'dark' ? 1 : 0,
+        shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+      }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Image source={{ uri: track.artwork }} style={styles.trackRowImage} />
+      <View style={styles.trackRowInfo}>
+        <Text style={[styles.trackRowTitle, { color: theme.onSurface }]} numberOfLines={1}>{track.title}</Text>
+        <Text style={[styles.trackRowArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{track.artist}</Text>
+      </View>
+      <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10 }}>
+        <MaterialIcon name="more-horiz" size={20} color={theme.onSurfaceVariant} />
+      </TouchableOpacity>
+    </TouchableOpacity>
   );
 }
 
@@ -127,7 +140,6 @@ export function HomeScreen({ navigation }: any) {
       'Sufi & Devotional',
       'Ghazal Hits',
     ];
-    // Pick two random seeds to search for playlists
     const pQuery = playlistSeeds[Math.floor(Math.random() * playlistSeeds.length)] + ' ' + 
                    playlistSeeds[Math.floor(Math.random() * playlistSeeds.length)];
 
@@ -142,7 +154,6 @@ export function HomeScreen({ navigation }: any) {
       getTopPlaylists(pQuery, 15).catch(() => [] as Playlist[]),
     ]);
 
-    // Shuffle playlists so they feel fresh each time
     const shuffledPlaylists = fPlaylists
       .sort(() => Math.random() - 0.5)
       .slice(0, 10);
@@ -156,14 +167,12 @@ export function HomeScreen({ navigation }: any) {
       }
     });
 
-    // Global Deduplication & Filtering
     const cleanPool = deduplicateTracks(allFetchedTracks);
     const seenIds = new Set<string>();
 
     trackFetchers.forEach((f, i) => {
       const result = trackResults[i];
       if (result.status === 'fulfilled') {
-        // Filter result tracks against the clean/deduplicated pool and ensure no cross-section overlap
         const tracks = result.value
           .filter((t: Track) => cleanPool.some((p: Track) => p.id === t.id))
           .filter((t: Track) => !seenIds.has(t.id));
@@ -175,7 +184,6 @@ export function HomeScreen({ navigation }: any) {
             title: f.title,
             tracks: shuffled,
           });
-          // Mark these tracks as 'seen' so they don't appear in the NEXT section
           tracks.forEach((t: Track) => seenIds.add(t.id));
         }
       }
@@ -213,10 +221,6 @@ export function HomeScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <LinearGradient
-          colors={themeMode === 'dark' ? ['#4F39CC', '#16162E', theme.background] : ['#A5B4FC', '#FFFFFF', theme.background]}
-          style={StyleSheet.absoluteFill}
-        />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <Skeleton width={120} height={40} borderRadius={8} />
@@ -246,12 +250,6 @@ export function HomeScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={themeMode === 'dark' ? ['#4F39CC', '#16162E', theme.background] : ['#A5B4FC', '#FFFFFF', theme.background]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -260,10 +258,11 @@ export function HomeScreen({ navigation }: any) {
         {/* Header */}
         <View style={styles.topBar}>
           <View>
-            <Text style={[styles.greeting, { color: theme.onSurface }]}>Today</Text>
+            <Text style={[styles.greetingSub, { color: theme.onSurfaceVariant }]}>{getGreeting()}</Text>
+            <Text style={[styles.greeting, { color: theme.onSurface }]}>{userName}</Text>
           </View>
-          <TouchableOpacity style={[styles.profileButton, { backgroundColor: 'transparent' }]} onPress={() => navigation.navigate('Settings')}>
-             <LinearGradient colors={selectedAvatar.bg} style={[styles.profileCircle, { borderWidth: 1, borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]}>
+          <TouchableOpacity style={[styles.profileButton, { backgroundColor: theme.surfaceContainer }]} onPress={() => navigation.navigate('Settings')}>
+             <LinearGradient colors={selectedAvatar.bg} style={styles.profileCircle}>
                 <Text style={{ fontSize: 18 }}>{selectedAvatar.emoji}</Text>
              </LinearGradient>
           </TouchableOpacity>
@@ -286,7 +285,7 @@ export function HomeScreen({ navigation }: any) {
         <SectionHeader title="Best new songs" themeMode={themeMode} />
         <View style={styles.bestNewSongsList}>
           {(bestNewSection?.tracks || heroSection?.tracks || []).slice(0, 10).map((track) => (
-            <GlassTrackItem 
+            <TrackItem 
               key={track.id} 
               track={track} 
               onPress={() => handleTrackPress(track, bestNewSection?.tracks || heroSection?.tracks || [])} 
@@ -308,11 +307,17 @@ export function HomeScreen({ navigation }: any) {
               contentContainerStyle={styles.horizontalList}
               renderItem={({ item }) => (
                 <TouchableOpacity 
-                   style={styles.simpleTrackCard} 
+                   style={[styles.simpleTrackCard, {
+                     backgroundColor: theme.surface,
+                     shadowColor: themeMode === 'dark' ? 'transparent' : '#B8A990',
+                     borderWidth: themeMode === 'dark' ? 1 : 0,
+                     borderColor: theme.outline,
+                   }]}
                    onPress={() => handleTrackPress(item, section.tracks)}
                 >
                    <Image source={{ uri: item.artwork }} style={styles.simpleTrackImage} />
                    <Text style={[styles.simpleTrackTitle, { color: theme.onSurface }]} numberOfLines={1}>{item.title}</Text>
+                   <Text style={[styles.simpleTrackArtist, { color: theme.onSurfaceVariant }]} numberOfLines={1}>{item.artist}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -335,7 +340,7 @@ export function HomeScreen({ navigation }: any) {
             {
               icon: isLiked(trackMenu.id) ? 'favorite' : 'favorite-border',
               label: isLiked(trackMenu.id) ? 'Remove from Liked' : 'Add to Liked Songs',
-              color: isLiked(trackMenu.id) ? '#EF4444' : theme.primary,
+              color: isLiked(trackMenu.id) ? theme.error : theme.primary,
               onPress: () => {
                 const wasLiked = isLiked(trackMenu.id);
                 toggleLike(trackMenu);
@@ -387,32 +392,40 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.xl, paddingTop: 60 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  greeting: { ...typography.displaySm, fontWeight: '800' },
-  profileButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  greetingSub: { ...typography.labelLg, fontWeight: '600', letterSpacing: 0.5, marginBottom: 2 },
+  greeting: { ...typography.headlineLg, fontWeight: '800' },
+  profileButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   profileCircle: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 24 },
   sectionTitle: { ...typography.headlineMd, fontWeight: '800' },
   seeAllText: { ...typography.labelLg },
   horizontalList: { gap: 16 },
-  playlistPill: { width: 260, height: 320, borderRadius: 32, overflow: 'hidden' },
-  playlistPillImage: { width: '100%', height: '100%' },
-  playlistPillOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24, height: '40%', justifyContent: 'flex-end' },
-  playlistPillTitle: { ...typography.headlineMd, fontWeight: '800' },
+  playlistPill: { width: 220, borderRadius: 20, overflow: 'hidden', elevation: 4, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+  playlistPillImage: { width: '100%', height: 220 },
+  playlistPillInfo: { padding: 14 },
+  playlistPillTitle: { ...typography.titleMd, fontWeight: '700' },
   playlistPillMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  playlistPillSubtitle: { ...typography.labelSm, letterSpacing: 2 },
+  playlistPillSubtitle: { ...typography.labelSm, letterSpacing: 1.5 },
   playIconTiny: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  bestNewSongsList: { gap: 12, marginTop: 8 },
-  glassTrackContainer: { borderRadius: 20, overflow: 'hidden', borderWidth: 1 },
-  glassTrackBlur: { padding: 12 },
-  trackRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  trackArtworkContainer: { width: 56, height: 56, justifyContent: 'center', alignItems: 'center' },
-  trackRowImage: { width: 56, height: 56, borderRadius: 16 },
-  trackPlayButtonOverlay: { position: 'absolute', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  bestNewSongsList: { gap: 8, marginTop: 8 },
+  trackItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 16,
+    gap: 14,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  trackRowImage: { width: 52, height: 52, borderRadius: 12 },
   trackRowInfo: { flex: 1 },
-  trackRowTitle: { ...typography.titleMd, fontWeight: '700' },
-  trackRowArtist: { ...typography.bodySm, marginTop: 4 },
+  trackRowTitle: { ...typography.titleSm, fontWeight: '700' },
+  trackRowArtist: { ...typography.bodySm, marginTop: 3 },
   standardSection: { marginTop: 12 },
-  simpleTrackCard: { width: 140 },
-  simpleTrackImage: { width: 140, height: 140, borderRadius: 24, marginBottom: 8 },
-  simpleTrackTitle: { ...typography.labelLg, textAlign: 'center' },
+  simpleTrackCard: { width: 150, borderRadius: 16, overflow: 'hidden', paddingBottom: 12, elevation: 3, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 10 },
+  simpleTrackImage: { width: 150, height: 150, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  simpleTrackTitle: { ...typography.titleSm, fontWeight: '700', marginTop: 10, paddingHorizontal: 10 },
+  simpleTrackArtist: { ...typography.bodySm, paddingHorizontal: 10, marginTop: 2 },
 });

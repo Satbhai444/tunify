@@ -64,7 +64,7 @@ function normalizeTrack(raw: any): Track {
     albumId: raw.album?.id,
     duration: Number(raw.duration) || 0,
     artwork: raw.image?.find((i: any) => i.quality === '500x500')?.url
-      ?? raw.image?.[raw.image.length - 1]?.url ?? '',
+      ?? (raw.image?.[raw.image.length - 1]?.url ?? '').replace('150x150', '500x500'),
     url: downloadUrl?.url ?? '',
     source: 'jiosaavn',
     hasLyrics: raw.hasLyrics === 'true' || raw.hasLyrics === true,
@@ -83,7 +83,7 @@ function normalizeAlbum(raw: any): Album {
     artistId: artists[0]?.id,
     artists: artists.length > 0 ? artists : undefined,
     artwork: raw.image?.find((i: any) => i.quality === '500x500')?.url
-      ?? raw.image?.[raw.image.length - 1]?.url ?? '',
+      ?? (raw.image?.[raw.image.length - 1]?.url ?? '').replace('150x150', '500x500'),
     year: raw.year,
     trackCount: raw.songCount,
     source: 'jiosaavn',
@@ -95,7 +95,7 @@ function normalizeArtist(raw: any): Artist {
     id: `js_${raw.id}`,
     name: raw.name ?? 'Unknown',
     image: raw.image?.find((i: any) => i.quality === '500x500')?.url
-      ?? raw.image?.[raw.image.length - 1]?.url ?? '',
+      ?? (raw.image?.[raw.image.length - 1]?.url ?? '').replace('150x150', '500x500'),
     followerCount: raw.followerCount,
     source: 'jiosaavn',
   };
@@ -107,7 +107,7 @@ function normalizePlaylist(raw: any): Playlist {
     title: raw.name ?? raw.title ?? 'Unknown',
     description: raw.description,
     artwork: raw.image?.find((i: any) => i.quality === '500x500')?.url
-      ?? raw.image?.[raw.image.length - 1]?.url ?? '',
+      ?? (raw.image?.[raw.image.length - 1]?.url ?? '').replace('150x150', '500x500'),
     trackCount: raw.songCount ?? 0,
     source: 'jiosaavn',
   };

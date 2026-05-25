@@ -13,7 +13,12 @@ import { setPreferredQuality } from '../api/musicService';
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const QUALITY_KBPS: Record<string, string> = { low: '96kbps', normal: '160kbps', high: '320kbps' };
 
-const LOADING_STEPS = ['Initializing...', 'Checking Network...', 'Checking Library...', 'Almost there...'];
+const LOADING_STEPS = [
+  '01 // SYS.INIT',
+  '02 // NETWORK.CHECK',
+  '03 // CACHE.TUNING',
+  '04 // READY.PLAY'
+];
 const BRAND_CHARS = 'tunify'.split('');
 
 export function SplashScreen({ navigation }: any) {
@@ -21,32 +26,30 @@ export function SplashScreen({ navigation }: any) {
   const [loadingStep, setLoadingStep] = useState(0);
 
   // --- Background Aura Animations ---
-  const blob1Pos = useRef(new Animated.ValueXY({ x: -50, y: -50 })).current;
-  const blob2Pos = useRef(new Animated.ValueXY({ x: SCREEN_W, y: SCREEN_H / 2 })).current;
-  const blob3Pos = useRef(new Animated.ValueXY({ x: SCREEN_W / 2, y: SCREEN_H })).current;
+  const blob1Pos = useRef(new Animated.ValueXY({ x: -100, y: -100 })).current;
+  const blob2Pos = useRef(new Animated.ValueXY({ x: SCREEN_W, y: SCREEN_H / 3 })).current;
+  const blob3Pos = useRef(new Animated.ValueXY({ x: SCREEN_W / 3, y: SCREEN_H })).current;
 
-  // --- Centerpiece Animations ---
+  // --- Centerpiece Animations (Redesigned: Sonic Core Pulsing Ring) ---
   const visualizerOpacity = useRef(new Animated.Value(0)).current;
   const centerpieceScale = useRef(new Animated.Value(0.8)).current;
-  const barAnims = [
-    useRef(new Animated.Value(0.4)).current,
-    useRef(new Animated.Value(0.7)).current,
-    useRef(new Animated.Value(0.5)).current,
-    useRef(new Animated.Value(0.9)).current,
-    useRef(new Animated.Value(0.6)).current,
-  ];
+  const ringScale1 = useRef(new Animated.Value(0.8)).current;
+  const ringOpacity1 = useRef(new Animated.Value(0.6)).current;
+  const ringScale2 = useRef(new Animated.Value(0.6)).current;
+  const ringOpacity2 = useRef(new Animated.Value(0.4)).current;
 
-  // --- Text Animations ---
+  // --- Text & Loader Animations ---
   const charAnims = useRef(BRAND_CHARS.map(() => new Animated.Value(0))).current;
   const footerOpacity = useRef(new Animated.Value(0)).current;
   const progressWidth = useRef(new Animated.Value(0)).current;
+  const tagOpacity = useRef(new Animated.Value(0)).current;
 
   const startAppLoading = () => {
     // 4. Progress Loading
     Animated.timing(progressWidth, {
       toValue: 1,
-      duration: 3000,
-      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      duration: 3200,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       useNativeDriver: false,
     }).start();
 
@@ -77,7 +80,7 @@ export function SplashScreen({ navigation }: any) {
       } catch (e) {
         navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
       }
-    }, 3500);
+    }, 3800);
 
     // 7. Background Data Loading
     useLibraryStore.getState().loadLibrary().catch(() => {});
@@ -109,7 +112,7 @@ export function SplashScreen({ navigation }: any) {
   };
 
   useEffect(() => {
-    // Start Aura Floating Animations
+    // Start Aura Floating Animations (Slow, organic)
     const createBlobAnimation = (anim: Animated.ValueXY, to: { x: number, y: number }, duration: number) => {
       const from = { x: (anim.x as any)._value, y: (anim.y as any)._value };
       Animated.loop(
@@ -120,30 +123,52 @@ export function SplashScreen({ navigation }: any) {
       ).start();
     };
 
-    createBlobAnimation(blob1Pos, { x: 100, y: 150 }, 8000);
-    createBlobAnimation(blob2Pos, { x: 50, y: SCREEN_H / 3 }, 10000);
-    createBlobAnimation(blob3Pos, { x: SCREEN_W - 100, y: SCREEN_H - 200 }, 9000);
+    createBlobAnimation(blob1Pos, { x: 50, y: 100 }, 12000);
+    createBlobAnimation(blob2Pos, { x: 0, y: SCREEN_H / 2.5 }, 14000);
+    createBlobAnimation(blob3Pos, { x: SCREEN_W / 1.5, y: SCREEN_H - 150 }, 13000);
 
-    // Start Visualizer Pulsing
-    barAnims.forEach((anim, i) => {
-      Animated.loop(
+    // Start Redesigned Sonic Ring Resonating Animations
+    Animated.loop(
+      Animated.parallel([
         Animated.sequence([
-          Animated.timing(anim, { toValue: 1, duration: 400 + (i * 100), easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
-          Animated.timing(anim, { toValue: 0.3, duration: 400 + (i * 100), easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
-        ])
-      ).start();
-    });
+          Animated.timing(ringScale1, { toValue: 2.2, duration: 2500, easing: Easing.out(Easing.sin), useNativeDriver: true }),
+          Animated.timing(ringScale1, { toValue: 0.8, duration: 0, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(ringOpacity1, { toValue: 0, duration: 2500, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(ringOpacity1, { toValue: 0.6, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.delay(1000),
+          Animated.timing(ringScale2, { toValue: 2.2, duration: 2500, easing: Easing.out(Easing.sin), useNativeDriver: true }),
+          Animated.timing(ringScale2, { toValue: 0.6, duration: 0, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.delay(1000),
+          Animated.timing(ringOpacity2, { toValue: 0, duration: 2500, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(ringOpacity2, { toValue: 0.4, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
 
     // Intro Animation Sequence
     Animated.parallel([
-      Animated.timing(visualizerOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.spring(centerpieceScale, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
+      Animated.timing(visualizerOpacity, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      Animated.spring(centerpieceScale, { toValue: 1, friction: 9, tension: 35, useNativeDriver: true }),
       Animated.sequence([
-        Animated.delay(400),
-        Animated.stagger(80, charAnims.map(anim => 
+        Animated.delay(500),
+        Animated.stagger(100, charAnims.map(anim => 
           Animated.spring(anim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true })
         )),
-        Animated.timing(footerOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.parallel([
+          Animated.timing(footerOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+          Animated.timing(tagOpacity, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        ]),
       ])
     ]).start();
 
@@ -156,37 +181,57 @@ export function SplashScreen({ navigation }: any) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
-      {/* Dynamic Background Aura */}
+      {/* Dynamic Background Aura (Electric Editorial Dark Perfect) */}
       <View style={StyleSheet.absoluteFill}>
-        <LinearGradient colors={['#050505', '#0e0e0e', '#050505']} style={StyleSheet.absoluteFill} />
-        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(124, 58, 237, 0.12)', transform: blob1Pos.getTranslateTransform() }]} />
-        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(114, 254, 143, 0.06)', width: 400, height: 400, transform: blob2Pos.getTranslateTransform() }]} />
-        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(79, 57, 204, 0.1)', width: 250, height: 250, transform: blob3Pos.getTranslateTransform() }]} />
+        <LinearGradient colors={['#151515', '#000000', '#0a0a0a']} style={StyleSheet.absoluteFill} />
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(147, 3, 46, 0.12)', transform: blob1Pos.getTranslateTransform() }]} />
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(127, 1, 31, 0.08)', width: 380, height: 380, transform: blob2Pos.getTranslateTransform() }]} />
+        <Animated.View style={[styles.blob, { backgroundColor: 'rgba(74, 2, 23, 0.06)', width: 280, height: 280, transform: blob3Pos.getTranslateTransform() }]} />
       </View>
 
+      {/* Asymmetric Technical Tag */}
+      <Animated.View style={[styles.catalogTag, { opacity: tagOpacity }]}>
+        <Text style={styles.catalogTagText}>TUNIFY.SYS // ED.2026</Text>
+        <View style={styles.catalogDot} />
+      </Animated.View>
+
       <View style={styles.content}>
-        {/* Animated Visualizer Centerpiece */}
+        {/* Animated Sonic Core Pulsing Ring centerpiece */}
         <Animated.View style={[styles.centerpiece, { opacity: visualizerOpacity, transform: [{ scale: centerpieceScale }] }]}>
-          <View style={styles.visualizer}>
-            {barAnims.map((anim, i) => (
-              <Animated.View 
-                key={i} 
-                style={[
-                  styles.bar, 
-                  { 
-                    height: anim.interpolate({ inputRange: [0, 1], outputRange: [15, 60] }),
-                    backgroundColor: i === 2 ? colors.primary : colors.primary + '88'
-                  }
-                ]} 
-              />
-            ))}
-          </View>
+          <Animated.View 
+            style={[
+              styles.sonicRing, 
+              { 
+                borderColor: '#93032E', 
+                opacity: ringOpacity1, 
+                transform: [{ scale: ringScale1 }] 
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.sonicRing, 
+              { 
+                borderColor: '#7F011F', 
+                opacity: ringOpacity2, 
+                transform: [{ scale: ringScale2 }] 
+              }
+            ]} 
+          />
+          
           <View style={styles.logoBase}>
-             <MaterialIcon name="music-note" size={70} color={colors.primary} />
+            <LinearGradient 
+              colors={['#93032E', '#7F011F']} 
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={styles.logoCircle}
+            >
+              <MaterialIcon name="play-arrow" size={38} color="#151515" style={{ marginLeft: 4 }} />
+            </LinearGradient>
           </View>
         </Animated.View>
 
-        {/* Staggered Brand Text */}
+        {/* Staggered Brand Text in BebasNote (Handwritten marker) */}
         <View style={styles.brandContainer}>
           {BRAND_CHARS.map((char, i) => (
             <Animated.Text
@@ -196,8 +241,8 @@ export function SplashScreen({ navigation }: any) {
                 {
                   opacity: charAnims[i],
                   transform: [
-                    { translateY: charAnims[i].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) },
-                    { scale: charAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }
+                    { translateY: charAnims[i].interpolate({ inputRange: [0, 1], outputRange: [25, 0] }) },
+                    { scale: charAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }
                   ]
                 }
               ]}
@@ -206,26 +251,27 @@ export function SplashScreen({ navigation }: any) {
             </Animated.Text>
           ))}
         </View>
-
-        <Animated.Text style={[styles.tagline, { opacity: charAnims[5] }]}>
-          PREMIUM MUSIC EXPERIENCE
-        </Animated.Text>
       </View>
 
-      {/* Modern Progress Indicator or Error State */}
+      {/* Editorial Progress Indicator */}
       <Animated.View style={[styles.footer, { opacity: footerOpacity }]}>
         {isOffline ? (
           <View style={styles.errorContainer}>
-            <MaterialIcon name="wifi-off" size={32} color="#ff4444" style={{ marginBottom: 10 }} />
-            <Text style={styles.errorTitle}>Network Error</Text>
-            <Text style={styles.errorSubtitle}>Please check your internet connection</Text>
+            <MaterialIcon name="wifi-off" size={28} color="#ff5c5c" style={{ marginBottom: 12 }} />
+            <Text style={styles.errorTitle}>CONNECTION INTERRUPTED</Text>
+            <Text style={styles.errorSubtitle}>Establish data link to stream</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={handleNetworkCheck}>
-              <Text style={styles.retryBtnText}>Try Again</Text>
+              <Text style={styles.retryBtnText}>Retry Link</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <>
-            <Text style={styles.loadingText}>{LOADING_STEPS[loadingStep]}</Text>
+          <View style={styles.progressContainer}>
+            <View style={styles.loaderMeta}>
+              <Text style={styles.loadingText}>{LOADING_STEPS[loadingStep]}</Text>
+              <Text style={styles.percentageText}>
+                {loadingStep === 0 ? '25%' : loadingStep === 1 ? '50%' : loadingStep === 2 ? '75%' : '100%'}
+              </Text>
+            </View>
             <View style={styles.progressTrack}>
               <Animated.View 
                 style={[
@@ -236,14 +282,14 @@ export function SplashScreen({ navigation }: any) {
                 ]} 
               >
                 <LinearGradient 
-                  colors={[colors.primary + '44', colors.primary]} 
+                  colors={['rgba(147, 3, 46, 0.3)', '#7F011F']} 
                   start={{x: 0, y: 0}} 
                   end={{x: 1, y: 0}} 
                   style={StyleSheet.absoluteFill} 
                 />
               </Animated.View>
             </View>
-          </>
+          </View>
         )}
       </Animated.View>
     </View>
@@ -253,90 +299,128 @@ export function SplashScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#151515',
     alignItems: 'center',
     justifyContent: 'center',
   },
   blob: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 200,
-    opacity: 0.6,
+    width: 320,
+    height: 320,
+    borderRadius: 250,
+    opacity: 0.65,
+  },
+  catalogTag: {
+    position: 'absolute',
+    top: 55,
+    left: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  catalogTagText: {
+    fontSize: 9,
+    color: 'rgba(255, 255, 255, 0.35)',
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  catalogDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#93032E',
   },
   content: {
     alignItems: 'center',
     zIndex: 10,
   },
   centerpiece: {
-    height: 200,
-    width: 200,
+    height: 220,
+    width: 220,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
-  visualizer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 70,
+  sonicRing: {
     position: 'absolute',
-    top: 20,
-  },
-  bar: {
-    width: 7,
-    borderRadius: 4,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
   },
   logoBase: {
-    marginTop: 50,
-    shadowColor: colors.primary,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#131313',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#72fe8f',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 25,
-    elevation: 10,
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  logoCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   brandContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: 70,
+    height: 80,
+    marginTop: 10,
   },
   brandChar: {
-    fontSize: 60,
-    fontWeight: '900',
+    fontSize: 66,
     color: '#FFFFFF',
-    textShadowColor: 'rgba(255, 255, 255, 0.4)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 15,
-    marginHorizontal: 1,
+    textShadowColor: 'rgba(114, 254, 143, 0.3)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 10,
+    marginHorizontal: 0.5,
   },
   tagline: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: 6,
-    marginTop: 15,
-    opacity: 0.9,
-    textTransform: 'uppercase',
+    fontSize: 14,
+    color: '#93032E',
+    letterSpacing: 5,
+    marginTop: 5,
+    opacity: 0.95,
   },
   footer: {
     position: 'absolute',
-    bottom: 80,
-    width: '80%',
+    bottom: 75,
+    width: '84%',
     alignItems: 'center',
   },
+  progressContainer: {
+    width: '100%',
+  },
+  loaderMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   loadingText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 15,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontWeight: '600',
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 1.5,
+    fontWeight: '700',
+  },
+  percentageText: {
+    fontSize: 9,
+    color: '#93032E',
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   progressTrack: {
     width: '100%',
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    height: 2.5,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -347,34 +431,35 @@ const styles = StyleSheet.create({
   errorContainer: {
     alignItems: 'center',
     width: '100%',
+    backgroundColor: '#131313',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   errorTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '700',
-    marginBottom: 5,
+    letterSpacing: 1.5,
+    marginBottom: 6,
   },
   errorSubtitle: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
     marginBottom: 20,
     textAlign: 'center',
   },
   retryBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 30,
+    backgroundColor: '#93032E',
+    paddingHorizontal: 32,
     paddingVertical: 12,
-    borderRadius: 25,
-    elevation: 5,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    borderRadius: 24,
   },
   retryBtnText: {
-    color: '#fff',
+    color: '#151515',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },

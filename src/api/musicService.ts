@@ -3,7 +3,7 @@ import { searchJioSaavn, searchJioSaavnSongs, getTrending, getNewReleases, getPl
 import { searchDeezer, getDeezerChart } from './deezer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CACHE_PREFIX = 'tunify_cache_';
+const CACHE_PREFIX = 'tunify_cache_v2_';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 async function getCached<T>(key: string): Promise<T | null> {

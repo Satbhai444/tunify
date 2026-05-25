@@ -8,9 +8,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, darkColors, lightColors, typography, spacing, radii } from '../theme';
+import { darkColors, lightColors, typography, spacing, radii } from '../theme';
 import { MadeInIndiaFooter } from '../components/MadeInIndiaFooter';
 import { MaterialIcon } from '../components/MaterialIcon';
 import { useLibraryStore, usePlayerStore, useSettingsStore } from '../stores';
@@ -63,14 +61,10 @@ export function HistoryScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient 
-        colors={themeMode === 'dark' ? ['#4F39CC', theme.background] : ['#A5B4FC', theme.background]} 
-        style={StyleSheet.absoluteFill} 
-      />
 
       <View style={styles.header}>
         <TouchableOpacity
-          style={[styles.backBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
+          style={[styles.backBtn, { backgroundColor: theme.surfaceContainer }]}
           onPress={() =>
             navigation.canGoBack()
               ? navigation.goBack()
@@ -84,7 +78,7 @@ export function HistoryScreen({ navigation }: any) {
         {recentlyPlayed.length > 0 ? (
           <TouchableOpacity 
             onPress={handleClear}
-            style={[styles.clearBtn, { backgroundColor: themeMode === 'dark' ? 'rgba(255,113,81,0.1)' : 'rgba(239, 68, 68, 0.1)' }]}
+            style={[styles.clearBtn, { backgroundColor: theme.error + '15' }]}
           >
             <MaterialIcon name="delete-outline" size={22} color={theme.error} />
           </TouchableOpacity>

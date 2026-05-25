@@ -1,22 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, NativeModules, Dimensions, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { BlurView } from 'expo-blur';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../services/firebaseConfig';
 import { colors, typography, spacing } from '../theme';
 import { MaterialIcon } from '../components/MaterialIcon';
 
-// Configure Google Sign-In
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+// Configure Google Sign-In with dynamic check for native module availability
+let GoogleSignin: any;
+let statusCodes: any = {
+  SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
+  SIGN_IN_REQUIRED: 'SIGN_IN_REQUIRED',
+};
+
+const hasGoogleSignin = !!NativeModules.RNGoogleSignin;
+
+if (hasGoogleSignin) {
+  try {
+    const googleSigninModule = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSigninModule.GoogleSignin;
+    statusCodes = { ...statusCodes, ...googleSigninModule.statusCodes };
+  } catch (e) {
+    console.warn('[Auth] Failed to load @react-native-google-signin/google-signin:', e);
+  }
+}
+
+if (!GoogleSignin) {
+  // Mock GoogleSignin object to prevent crash when running in Expo Go
+  GoogleSignin = {
+    configure: () => {
+      console.log('[Auth] GoogleSignin (Mock): Configure called');
+    },
+    hasPlayServices: async () => {
+      console.log('[Auth] GoogleSignin (Mock): hasPlayServices called');
+      return false;
+    },
+    signIn: async () => {
+      console.log('[Auth] GoogleSignin (Mock): signIn called');
+      throw new Error('Google Sign-In is not supported in Expo Go. Please use a native development build or tap "Skip for now".');
+    },
+    signOut: async () => {
+      console.log('[Auth] GoogleSignin (Mock): signOut called');
+    },
+  };
+}
+
 GoogleSignin.configure({
   webClientId: '798226911568-aur98kfvm38spo1hhi7lgespn4cpra4j.apps.googleusercontent.com',
   offlineAccess: false,
 });
 
 export function AuthScreen({ navigation }: any) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -48,7 +87,7 @@ export function AuthScreen({ navigation }: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         // user cancelled the login flow
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        // operation (e.g. sign in) is in progress already
+        // operation in progress already
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         Alert.alert('Error', 'Play services not available or outdated');
       } else {
@@ -59,67 +98,95 @@ export function AuthScreen({ navigation }: any) {
     }
   };
 
-  const handleAuth = async () => {
-    // Standard email/password placeholder or implementation can go here
-    // For now focusing on Google Auth as requested
-    handleGoogleSignIn();
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={['#0e0e0e', '#050505']}
-        style={StyleSheet.absoluteFill}
-      />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      {/* Background Gradient & Premium Glowing Aura */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient colors={['#151515', '#000000']} style={StyleSheet.absoluteFill} />
+        <View style={styles.radialGlowGreen} />
+        <View style={styles.radialGlowPurple} />
+      </View>
 
-      <View style={styles.topGlow} />
+      {/* Asymmetrical Floating Graphic Elements */}
+      <View style={styles.abstractGraphicCircle} />
+      <View style={styles.abstractGraphicSmall} />
 
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <MaterialIcon name="music-note" size={56} color={colors.primary} />
-          <Text style={styles.appName}>tunify</Text>
-          <Text style={styles.tagline}>Your Music. Everywhere.</Text>
-        </View>
-
-        <View style={styles.form}>
-          {/* Google Button */}
-          <TouchableOpacity 
-            style={styles.googleButton} 
-            activeOpacity={0.8} 
-            onPress={handleGoogleSignIn}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.onSurface} />
-            ) : (
-              <>
-                <MaterialIcon name="login" size={24} color={colors.onSurface} />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>SECURE AUTHENTICATION</Text>
-            <View style={styles.dividerLine} />
-          </View>
-          
-          <Text style={styles.infoText}>
-            By continuing, you agree to Tunify's Terms of Service and Privacy Policy.
+      <View style={styles.layoutWrapper}>
+        
+        {/* Asymmetrical Editorial Header */}
+        <View style={styles.heroHeader}>
+          <Text style={styles.catalogTag}>TUNIFY.SYS // SECURITY.CONSOLE</Text>
+          <Text style={styles.heroDisplayTitle}>
+            Soundtrack{"\n"}your moments.{"\n"}Welcome to{"\n"}Tunify.
           </Text>
+          <View style={styles.taglineWrapper}>
+            <View style={styles.pulseDot} />
+            <Text style={styles.heroTagline}>PREMIUM EDITION</Text>
+          </View>
         </View>
 
-        {/* Skip for now */}
-        <TouchableOpacity 
-          onPress={() => navigation.replace('Main')} 
-          style={{ marginTop: 32, alignSelf: 'center' }}
+        {/* Floating Glassmorphic Control Console */}
+        <BlurView 
+          intensity={30} 
+          tint="dark" 
+          style={styles.glassConsole}
         >
-          <Text style={styles.footerLink}>Skip for now</Text>
-        </TouchableOpacity>
+          <View style={styles.consoleHeader}>
+            <View style={styles.brandRow}>
+              <MaterialIcon name="play-circle-filled" size={24} color="#93032E" />
+              <Text style={styles.consoleTitle}>TUNIFY GATEWAY</Text>
+            </View>
+            <Text style={styles.consoleSubtitle}>SECURE AUTHENTICATION REQUIRED</Text>
+          </View>
+
+          <View style={styles.buttonContainer}>
+            {/* Redesigned Premium Google Button */}
+            <TouchableOpacity 
+              style={styles.googleButton} 
+              activeOpacity={0.85} 
+              onPress={handleGoogleSignIn}
+              disabled={loading}
+            >
+              <LinearGradient 
+                colors={['#ffffff', '#f0f0f0']} 
+                style={styles.btnGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#0e0e0e" />
+                ) : (
+                  <>
+                    <MaterialIcon name="login" size={20} color="#0e0e0e" />
+                    <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Redesigned Premium Skip Button */}
+            <TouchableOpacity 
+              style={styles.skipButton} 
+              activeOpacity={0.8} 
+              onPress={() => navigation.replace('Main')}
+            >
+              <View style={styles.skipBtnContent}>
+                <MaterialIcon name="arrow-forward" size={18} color="#93032E" />
+                <Text style={styles.skipButtonText}>Skip for now</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.footerTerms}>
+            <Text style={styles.termsText}>
+              BY CONTINUING, YOU AGREE TO TUNIFY'S TERMS OF SERVICE AND PRIVACY REGISTRY.
+            </Text>
+          </View>
+        </BlurView>
+        
       </View>
     </KeyboardAvoidingView>
   );
@@ -128,91 +195,182 @@ export function AuthScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#0e0e0e',
   },
-  topGlow: {
+  radialGlowGreen: {
     position: 'absolute',
-    top: -150,
-    left: '50%',
-    marginLeft: -250,
+    top: -100,
+    right: -100,
+    width: 450,
+    height: 450,
+    borderRadius: 225,
+    backgroundColor: 'rgba(147, 3, 46, 0.08)',
+    filter: Platform.OS === 'ios' ? 'blur(80px)' : undefined,
+  },
+  radialGlowPurple: {
+    position: 'absolute',
+    bottom: -150,
+    left: -150,
     width: 500,
     height: 500,
     borderRadius: 250,
-    backgroundColor: colors.primary,
-    opacity: 0.1,
+    backgroundColor: 'rgba(74, 2, 23, 0.08)',
+    filter: Platform.OS === 'ios' ? 'blur(100px)' : undefined,
   },
-  content: {
+  abstractGraphicCircle: {
+    position: 'absolute',
+    top: SCREEN_H * 0.28,
+    right: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.03)',
+    borderStyle: 'dashed',
+  },
+  abstractGraphicSmall: {
+    position: 'absolute',
+    top: SCREEN_H * 0.42,
+    right: 40,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(147, 3, 46, 0.03)',
+  },
+  layoutWrapper: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 28,
+    justifyContent: 'space-between',
+    paddingTop: 80,
+    paddingBottom: 50,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 60,
+  heroHeader: {
+    alignItems: 'flex-start',
+    marginTop: 20,
   },
-  appName: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: '#fff',
-    marginTop: 10,
-    letterSpacing: -1,
-  },
-  tagline: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 5,
+  catalogTag: {
+    fontSize: 9,
+    color: 'rgba(255, 255, 255, 0.35)',
+    fontWeight: '700',
     letterSpacing: 2,
-    textTransform: 'uppercase',
+    marginBottom: 20,
   },
-  form: {
-    gap: 20,
+  heroDisplayTitle: {
+    fontSize: 48,
+    fontFamily: typography.displayLg.fontFamily,
+    color: '#ffffff',
+    lineHeight: 52,
+    textShadowColor: 'rgba(255,255,255,0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  taglineWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#93032E',
+  },
+  heroTagline: {
+    fontSize: 12,
+    color: '#93032E',
+    letterSpacing: 3,
+    fontWeight: '700',
+  },
+  glassConsole: {
+    borderRadius: 36,
+    overflow: 'hidden',
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(19, 19, 19, 0.65)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 25,
+    elevation: 10,
+  },
+  consoleHeader: {
+    alignItems: 'flex-start',
+    marginBottom: 28,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  consoleTitle: {
+    fontSize: 16,
+    color: '#ffffff',
+    letterSpacing: 2,
+  },
+  consoleSubtitle: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.3)',
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  buttonContainer: {
+    gap: 16,
   },
   googleButton: {
-    backgroundColor: '#fff',
-    borderRadius: 30,
-    paddingVertical: 16,
-    alignItems: 'center',
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  btnGradient: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: 12,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
   },
   googleButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
+    fontSize: 18,
+    color: '#0e0e0e',
+    letterSpacing: 0.5,
   },
-  divider: {
+  skipButton: {
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: 'rgba(147, 3, 46, 0.35)',
+    backgroundColor: 'rgba(147, 3, 46, 0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  skipBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    gap: 10,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  skipButtonText: {
+    fontSize: 18,
+    color: '#93032E',
+    letterSpacing: 0.5,
   },
-  dividerText: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.3)',
-    marginHorizontal: 15,
-    letterSpacing: 2,
+  footerTerms: {
+    marginTop: 28,
+    alignItems: 'center',
   },
-  infoText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+  termsText: {
+    fontSize: 8,
+    color: 'rgba(255, 255, 255, 0.25)',
     textAlign: 'center',
-    lineHeight: 18,
-  },
-  footerLink: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '800',
+    lineHeight: 12,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontWeight: '600',
   },
 });
