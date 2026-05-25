@@ -164,13 +164,10 @@ export function MiniPlayer({ onPress }: { onPress: () => void }) {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    backgroundColor: 'rgba(28,28,30,0.95)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(28,28,30,0.98)',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
     elevation: 10,
     shadowColor: '#000',

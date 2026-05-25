@@ -92,14 +92,14 @@ export function OnboardingScreen({ navigation }: any) {
         } catch {}
       }
     } catch {}
-    navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
   };
 
   const handleSkip = async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     } catch {}
-    navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
   };
 
   return (

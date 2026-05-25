@@ -1,4 +1,5 @@
 import React from 'react';
+import { AuthScreen } from '../screens/AuthScreen';
 import { View, StyleSheet, Linking, Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
@@ -243,7 +244,7 @@ export function AppNavigator() {
           }
         };
 
-        checkUpdates();
+        // checkUpdates();
 
         // Trigger rating modal if used 3+ times and hasn't rated
         if (newCount >= 3 && !hasRated) {
@@ -312,6 +313,7 @@ export function AppNavigator() {
             }}
           >
             <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Auth" component={AuthScreen} />
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             <Stack.Screen name="Main" component={HomeTabs} />
@@ -336,7 +338,9 @@ export function AppNavigator() {
           </Stack.Navigator>
 
           {!!currentTrack && !hideMiniPlayer && (
-            <View style={[styles.globalMiniPlayer, { bottom: currentRoute === 'Main' ? (Platform.OS === 'ios' ? 170 : 160) : 20 }]}>
+            <View style={[styles.globalMiniPlayer, { 
+              bottom: ['Home', 'Discover', 'Search', 'History', 'Library'].includes(currentRoute || '') ? 80 : 20 
+            }]}>
                <MiniPlayer onPress={() => navigationRef.current?.navigate('Player')} />
             </View>
           )}
@@ -364,8 +368,8 @@ export function AppNavigator() {
 const styles = StyleSheet.create({
   globalMiniPlayer: {
     position: 'absolute',
-    left: 10,
-    right: 10,
+    left: 8,
+    right: 8,
     zIndex: 9999,
   },
 });

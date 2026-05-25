@@ -357,6 +357,24 @@ export function HomeScreen({ navigation }: any) {
                 shareSong(trackMenu);
               },
             },
+            {
+              icon: useLibraryStore.getState().isDownloaded(trackMenu.id) ? 'file-download-done' : 'file-download',
+              label: useLibraryStore.getState().isDownloaded(trackMenu.id) ? 'Downloaded' : 'Download',
+              onPress: async () => {
+                if (useLibraryStore.getState().isDownloaded(trackMenu.id)) {
+                  showToast('Already downloaded');
+                  return;
+                }
+                showToast('Starting download...');
+                try {
+                  const { downloadService } = require('../services/downloadService');
+                  await downloadService.downloadTrack(trackMenu);
+                  showToast('Download complete!');
+                } catch (e) {
+                  showToast('Download failed');
+                }
+              },
+            },
           ]}
         />
       )}

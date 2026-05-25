@@ -4,45 +4,35 @@ import * as Haptics from 'expo-haptics';
 import { Track } from '../types';
 import { setupWebMediaSession, updateWebPlaybackState, updateWebPositionState } from '../services/mediaControls';
 import { createWebAudioPlayer } from '../utils/webAudio';
+import * as NativePlayer from '../utils/nativePlayer';
 
 // ─── Audio Engine Detection ───
-// Try TrackPlayer first (native build), fall back to expo-audio (Expo Go)
+// Force disable TrackPlayer for now to ensure stability in Expo Go
+const { RNTP, isAvailable } = NativePlayer;
 let TrackPlayer: any = null;
 let Capability: any = null;
 let RNTPEvent: any = null;
 let RNTPState: any = null;
 let RepeatMode: any = null;
 let AppKilledPlaybackBehavior: any = null;
-let isTrackPlayerAvailable = false;
+let isTrackPlayerAvailable = false; // FORCED FALSE
+
 let createAudioPlayer: ((url: string) => any) | null = null;
 let setAudioModeAsync: ((mode: any) => Promise<void>) | null = null;
 let isExpoAudioAvailable = false;
-import { RNTP, isAvailable } from '../utils/nativePlayer';
 
-if (Platform.OS !== 'web' && isAvailable && RNTP) {
-  TrackPlayer = RNTP.TrackPlayer;
-  Capability = RNTP.Capability;
-  RNTPEvent = RNTP.Event;
-  RNTPState = RNTP.State;
-  RepeatMode = RNTP.RepeatMode;
-  AppKilledPlaybackBehavior = RNTP.AppKilledPlaybackBehavior;
-  isTrackPlayerAvailable = true;
-  if (__DEV__) console.log('[Player] ✅ Native Player Linked');
+// expo-audio setup
+try {
+  const expoAudio = require('expo-audio');
+  createAudioPlayer = expoAudio.createAudioPlayer;
+  setAudioModeAsync = expoAudio.setAudioModeAsync;
+  isExpoAudioAvailable = true;
+  console.log('[Player] ✅ Using expo-audio (Safe Mode)');
+} catch (e) {
+  console.warn('[Player] ❌ expo-audio not available');
 }
 
-if (Platform.OS !== 'web' && !isTrackPlayerAvailable) {
-  try {
-    const expoAudio = require('expo-audio');
-    createAudioPlayer = expoAudio.useAudioPlayer || expoAudio.createAudioPlayer;
-    setAudioModeAsync = expoAudio.setAudioModeAsync;
-    isExpoAudioAvailable = true;
-    console.log('[Player] ✅ Using expo-audio (Expo Go mode)');
-  } catch (e) {
-    console.warn('[Player] ❌ expo-audio also not available:', e);
-  }
-}
-
-// ─── expo-audio state ───
+// ─── Global State Variables ───
 let expoPlayer: any = null;
 let statusSubscription: { remove: () => void } | null = null;
 let positionTimer: ReturnType<typeof setInterval> | null = null;
@@ -73,32 +63,8 @@ function startExpoPositionTracking() {
       const store = usePlayerStore.getState();
       if (Math.abs(pos - store.position) > 0.5) {
         usePlayerStore.setState({ position: pos });
-        updateWebPositionState(pos, dur);
       }
       if (dur > 0 && dur !== store.duration) {
-        usePlayerStore.setState({ duration: dur });
-      }
-    } catch {}
-  }, 500);
-}
-
-function startTrackPlayerPositionTracking() {
-  if (positionTimer) clearInterval(positionTimer);
-  positionTimer = setInterval(async () => {
-    if (!isTrackPlayerAvailable) return;
-    try {
-      const pbState = await TrackPlayer.getPlaybackState();
-      // Only poll if we are actually playing
-      if (pbState.state !== RNTPState.Playing) return;
-
-      const pos = await TrackPlayer.getPosition();
-      const dur = await TrackPlayer.getDuration();
-      const store = usePlayerStore.getState();
-      
-      if (Math.abs(pos - store.position) > 0.3) {
-        usePlayerStore.setState({ position: pos });
-      }
-      if (dur > 0 && Math.abs(dur - store.duration) > 1) {
         usePlayerStore.setState({ duration: dur });
       }
     } catch {}
@@ -111,7 +77,6 @@ async function loadAndPlayWithExpoAudio(track: Track) {
   usePlayerStore.setState({ isBuffering: true, position: 0, duration: 0 });
 
   try {
-    // Cleanup old
     if (statusSubscription) { try { statusSubscription.remove(); } catch {} statusSubscription = null; }
     if (expoPlayer) { try { expoPlayer.pause(); expoPlayer.remove(); } catch {} expoPlayer = null; }
     if (positionTimer) { clearInterval(positionTimer); positionTimer = null; }
@@ -122,9 +87,6 @@ async function loadAndPlayWithExpoAudio(track: Track) {
     statusSubscription = expoPlayer.addListener('playbackStatusUpdate', (status: any) => {
       if (status.didJustFinish && !isTransitioning) {
         usePlayerStore.getState().skipNext();
-      }
-      if (status.isBuffering !== undefined) {
-        usePlayerStore.setState({ isBuffering: status.isBuffering });
       }
     });
 
@@ -142,7 +104,6 @@ async function loadAndPlayWithExpoAudio(track: Track) {
   }
 }
 
-// ─── Store ───
 export interface PlayerState {
   currentTrack: Track | null;
   queue: Track[];
@@ -194,91 +155,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   initPlayer: async () => {
     if (isInitialized) return;
-
     if (Platform.OS === 'web') {
       set({ isPlayerReady: true });
       isInitialized = true;
       return;
     }
-
-    if (isTrackPlayerAvailable) {
-        try {
-          await TrackPlayer.setupPlayer({ 
-            waitForBuffer: true,
-          });
-        } catch (e) {
-          // If already initialized, we just continue to update options
-          console.log('[TrackPlayer] Already initialized, updating options...');
-        }
-        
-        await TrackPlayer.updateOptions({
-          android: {
-            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlayback,
-          },
-          forwardJumpInterval: 10,
-          backwardJumpInterval: 10,
-          capabilities: [
-            Capability.Play, Capability.Pause,
-            Capability.SkipToNext, Capability.SkipToPrevious,
-            Capability.Stop, Capability.SeekTo,
-            Capability.JumpForward, Capability.JumpBackward,
-            Capability.PlayPause,
-          ],
-          compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
-          notificationCapabilities: [
-            Capability.Play, Capability.Pause,
-            Capability.SkipToNext, Capability.SkipToPrevious,
-            Capability.SeekTo,
-            Capability.JumpForward, Capability.JumpBackward,
-            Capability.PlayPause,
-          ],
-        });
-
-        TrackPlayer.addEventListener(RNTPEvent.RemotePause, () => {
-          if (__DEV__) console.log('[TrackPlayer] Remote Pause (Audio Focus/Lockscreen)');
-          get().pause();
-        });
-
-        TrackPlayer.addEventListener(RNTPEvent.RemotePlay, () => {
-          if (__DEV__) console.log('[TrackPlayer] Remote Play (Audio Focus/Lockscreen)');
-          get().resume();
-        });
-
-        TrackPlayer.addEventListener(RNTPEvent.PlaybackState, (event: any) => {
-          // In RNTP v4, state can be a string or part of an object depending on the hook
-          const state = typeof event.state === 'string' ? event.state : event.state;
-          if (__DEV__) console.log('[PlayerStore] State Changed:', state);
-          set({ 
-            isPlaying: state === RNTPState.Playing || state === 'playing',
-            isBuffering: state === RNTPState.Buffering || state === RNTPState.Loading || state === 'buffering' || state === 'loading'
-          });
-        });
-
-        TrackPlayer.addEventListener(RNTPEvent.PlaybackActiveTrackChanged, (event: any) => {
-          if (__DEV__) console.log('[PlayerStore] Track Changed:', event.track?.title);
-          if (event.track) {
-            const track = event.track as unknown as Track;
-            set({ currentTrack: track, duration: event.track.duration || 0 });
-            try {
-              const { useLibraryStore } = require('./libraryStore');
-              useLibraryStore.getState().addRecentlyPlayed(track);
-            } catch {}
-          }
-        });
-
-        TrackPlayer.addEventListener(RNTPEvent.PlaybackProgressUpdated, (event: any) => {
-          // Only update if we aren't using the polling timer (or as a fallback)
-          set({ position: event.position, duration: event.duration });
-        });
-
-        set({ isPlayerReady: true });
-        isInitialized = true;
-    } else {
-      // expo-audio mode
-      await configureExpoAudio();
-      set({ isPlayerReady: true });
-      isInitialized = true;
-    }
+    await configureExpoAudio();
+    set({ isPlayerReady: true });
+    isInitialized = true;
+    console.log('[PlayerStore] 🚀 Safe Init Success');
   },
 
   setCurrentTrack: (track) => set({ currentTrack: track }),
@@ -291,304 +176,102 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   toggleRepeat: async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const current = get().repeatMode;
-    const next = current === 'off' ? 'all' : current === 'all' ? 'one' : 'off';
+    const next = get().repeatMode === 'off' ? 'all' : get().repeatMode === 'all' ? 'one' : 'off';
     set({ repeatMode: next });
-    if (isTrackPlayerAvailable) {
-      const mode = next === 'off' ? RepeatMode.Off : next === 'one' ? RepeatMode.Track : RepeatMode.Queue;
-      await TrackPlayer.setRepeatMode(mode);
-    } else if (expoPlayer) {
-      expoPlayer.loop = next === 'one';
-    }
+    if (expoPlayer) expoPlayer.loop = next === 'one';
   },
 
   toggleShuffle: async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const { isShuffled, queue, originalQueue, currentTrack, isPlaying } = get();
-    let newQueue: Track[] = [];
-
+    const { isShuffled, queue, originalQueue, currentTrack } = get();
     if (!isShuffled) {
-      // Shuffling: current track stays first, others shuffle
       const others = queue.filter(t => t.id !== currentTrack?.id).sort(() => Math.random() - 0.5);
-      newQueue = currentTrack ? [currentTrack, ...others] : others;
-      set({ isShuffled: true, queue: newQueue, originalQueue: queue });
+      set({ isShuffled: true, queue: currentTrack ? [currentTrack, ...others] : others, originalQueue: queue });
     } else {
-      // Unshuffling: restore original order
-      newQueue = originalQueue.length > 0 ? originalQueue : queue;
-      set({ isShuffled: false, queue: newQueue });
-    }
-
-    // Sync with Native Player
-    if (isTrackPlayerAvailable) {
-      try {
-        const pos = await TrackPlayer.getPosition();
-        const tnTracks = newQueue.map(t => ({
-          id: t.id,
-          url: (t as any).localPath || t.url,
-          title: t.title,
-          artist: t.artist,
-          artwork: t.artwork,
-        }));
-
-        await TrackPlayer.reset();
-        await TrackPlayer.add(tnTracks);
-        
-        const currentIdx = currentTrack ? newQueue.findIndex(t => t.id === currentTrack.id) : 0;
-        if (currentIdx >= 0) {
-          await TrackPlayer.skip(currentIdx);
-        }
-        
-        await TrackPlayer.seekTo(pos);
-        if (isPlaying) {
-          await TrackPlayer.play();
-        }
-      } catch (e) {
-        console.error('[PlayerStore] Shuffle Sync Error:', e);
-      }
+      set({ isShuffled: false, queue: originalQueue.length > 0 ? originalQueue : queue });
     }
   },
 
   play: async (track, queue) => {
     const state = get();
     if (!state.isPlayerReady) await state.initPlayer();
-
     const tracksToQueue = queue ?? [track];
     set({ currentTrack: track, queue: tracksToQueue, originalQueue: tracksToQueue, isShuffled: false });
-
-    try {
-      const { useLibraryStore } = require('./libraryStore');
-      useLibraryStore.getState().addRecentlyPlayed(track);
-    } catch {}
-
-    if (Platform.OS === 'web') {
-      // Web player
-      setupWebMediaSession(track, {
-        onPlay: () => get().togglePlayPause(),
-        onPause: () => get().togglePlayPause(),
-        onNextTrack: () => get().skipNext(),
-        onPreviousTrack: () => get().skipPrevious(),
-        onSeekForward: () => get().seekTo(get().position + 10),
-        onSeekBackward: () => get().seekTo(get().position - 10),
-      });
-      set({ isPlaying: true, isBuffering: false });
-    } else if (isTrackPlayerAvailable) {
-      // Native TrackPlayer
-      const tnTracks = tracksToQueue.map(t => ({
-        id: t.id,
-        url: (t as any).localPath || t.url,
-        title: t.title,
-        artist: t.artist,
-        artwork: t.artwork,
-      }));
-
-      try {
-        await TrackPlayer.reset();
-        await TrackPlayer.add(tnTracks);
-        
-        const trackIndex = tracksToQueue.findIndex(tn => tn.id === track.id);
-        if (trackIndex >= 0) {
-          await TrackPlayer.skip(trackIndex);
-        }
-        
-        await TrackPlayer.play();
-        set({ isPlaying: true, isBuffering: false });
-        startTrackPlayerPositionTracking();
-      } catch (e) {
-        console.error('[PlayerStore] Native Play Error:', e);
-      }
-    } else {
-      // expo-audio fallback (Expo Go)
-      await loadAndPlayWithExpoAudio(track);
-    }
+    await loadAndPlayWithExpoAudio(track);
   },
 
   togglePlayPause: async () => {
-    if (__DEV__) console.log('[PlayerStore] togglePlayPause hit');
-    if (isTrackPlayerAvailable) {
-      try {
-        const pbStateInner = await TrackPlayer.getPlaybackState();
-        const stateStr = pbStateInner.state === RNTPState.Playing ? 'Playing' : 'Paused/Other';
-        console.log('[PlayerStore] Native State:', stateStr, pbStateInner.state);
-        
-        if (pbStateInner.state === RNTPState.Playing || pbStateInner.state === 'playing') {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          // Smooth fade out
-          await TrackPlayer.setVolume(0.5);
-          await new Promise(r => setTimeout(r, 100));
-          await TrackPlayer.setVolume(0);
-          await TrackPlayer.pause();
-          await TrackPlayer.setVolume(1.0); // Reset for next play
-          set({ isPlaying: false }); 
-          if (positionTimer) { clearInterval(positionTimer); positionTimer = null; }
-        } else {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          await TrackPlayer.setVolume(1.0);
-          await TrackPlayer.play();
-          set({ isPlaying: true }); 
-          startTrackPlayerPositionTracking();
-        }
-      } catch (e) {
-        console.error('[PlayerStore] togglePlayPause Error:', e);
-      }
-    } else if (expoPlayer) {
-      if (expoPlayer.playing) {
-        expoPlayer.pause();
-        set({ isPlaying: false });
-        updateWebPlaybackState(false);
-      } else {
-        expoPlayer.play();
-        set({ isPlaying: true });
-        updateWebPlaybackState(true);
-      }
+    if (!expoPlayer) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const currentlyPlaying = expoPlayer.playing;
+    
+    // Immediate state update for UI responsiveness
+    set({ isPlaying: !currentlyPlaying });
+
+    if (currentlyPlaying) {
+      expoPlayer.pause();
+    } else {
+      expoPlayer.play();
     }
   },
 
-  pause: async () => {
-    if (isTrackPlayerAvailable) {
-      await TrackPlayer.pause();
-    } else if (expoPlayer) {
-      await expoPlayer.pauseAsync();
-    }
-    set({ isPlaying: false });
-  },
-
-  resume: async () => {
-    if (isTrackPlayerAvailable) {
-      await TrackPlayer.play();
-    } else if (expoPlayer) {
-      await expoPlayer.playAsync();
-    }
-    set({ isPlaying: true });
-  },
+  pause: async () => { if (expoPlayer) expoPlayer.pause(); set({ isPlaying: false }); },
+  resume: async () => { if (expoPlayer) expoPlayer.play(); set({ isPlaying: true }); },
 
   skipNext: async () => {
-    console.log('[PlayerStore] skipNext hit');
-    if (isTransitioning) return;
     const { queue, currentTrack, repeatMode } = get();
     const idx = queue.findIndex(t => t.id === currentTrack?.id);
-    
-    if (isTrackPlayerAvailable) {
-      try {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await TrackPlayer.skipToNext();
-        // Eagerly update current track info
-        const idx = await TrackPlayer.getActiveTrackIndex();
-        if (idx !== undefined) {
-          const track = await TrackPlayer.getTrack(idx);
-          if (track) {
-            set({ currentTrack: track as unknown as Track });
-          }
-        }
-      } catch (e) {
-        console.error('[PlayerStore] skipNext Error:', e);
-      }
-    } else {
-      let next: Track | null = null;
-      if (idx >= 0 && idx < queue.length - 1) next = queue[idx + 1];
-      else if (repeatMode === 'all' && queue.length > 0) next = queue[0];
-      if (next) {
-        set({ currentTrack: next });
-        await loadAndPlayWithExpoAudio(next);
-      } else {
-        set({ isPlaying: false });
-      }
+    let next: Track | null = null;
+    if (idx >= 0 && idx < queue.length - 1) next = queue[idx + 1];
+    else if (repeatMode === 'all' && queue.length > 0) next = queue[0];
+    if (next) {
+      set({ currentTrack: next });
+      await loadAndPlayWithExpoAudio(next);
     }
   },
 
   skipPrevious: async () => {
-    console.log('[PlayerStore] skipPrevious hit');
-    if (isTransitioning) return;
     const { queue, currentTrack, position } = get();
     const idx = queue.findIndex(t => t.id === currentTrack?.id);
-
-    if (isTrackPlayerAvailable) {
-      try {
-        const pos = await TrackPlayer.getPosition();
-        if (pos > 3) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          await TrackPlayer.seekTo(0);
-        } else {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          await TrackPlayer.skipToPrevious();
-          // Eagerly update current track info
-          const idx = await TrackPlayer.getActiveTrackIndex();
-          if (idx !== undefined) {
-            const track = await TrackPlayer.getTrack(idx);
-            if (track) {
-              set({ currentTrack: track as unknown as Track });
-            }
-          }
-        }
-      } catch (e) {
-        console.error('[PlayerStore] skipPrevious Error:', e);
-      }
-    } else {
-      if (position > 3 && expoPlayer) {
-        try { await expoPlayer.seekTo(0); set({ position: 0 }); } catch {}
-        return;
-      }
-      if (idx > 0) {
-        const prev = queue[idx - 1];
-        set({ currentTrack: prev });
-        await loadAndPlayWithExpoAudio(prev);
-      } else if (expoPlayer) {
-        try { await expoPlayer.seekTo(0); set({ position: 0 }); } catch {}
-      }
+    if (position > 3 && expoPlayer) {
+      try { await expoPlayer.seekTo(0); set({ position: 0 }); } catch {}
+      return;
+    }
+    if (idx > 0) {
+      const prev = queue[idx - 1];
+      set({ currentTrack: prev });
+      await loadAndPlayWithExpoAudio(prev);
     }
   },
 
   seekTo: async (seconds) => {
     set({ position: seconds });
-    if (isTrackPlayerAvailable) {
-      await TrackPlayer.seekTo(seconds);
-    } else if (expoPlayer) {
-      try { await expoPlayer.seekTo(seconds); } catch {}
-    }
+    if (expoPlayer) try { await expoPlayer.seekTo(seconds); } catch {}
   },
 
   addToQueue: async (track) => {
-    const { isShuffled } = get();
-    set(state => ({
-      queue: [...state.queue, track],
-      originalQueue: isShuffled ? state.originalQueue : [...state.originalQueue, track],
-    }));
-    if (isTrackPlayerAvailable) {
-      await TrackPlayer.add([track]);
-    }
+    set(state => ({ queue: [...state.queue, track], originalQueue: [...state.originalQueue, track] }));
   },
 
   applyEqPreset: (preset) => {
     if (!expoPlayer) return;
-    const presets: Record<string, { rate: number; volume: number }> = {
-      flat:   { rate: 1.0,  volume: 1.0 },
-      bass:   { rate: 0.97, volume: 1.0 },
-      treble: { rate: 1.03, volume: 0.95 },
-      vocal:  { rate: 1.0,  volume: 0.9 },
-    };
-    const cfg = presets[preset] || presets.flat;
     try {
-      expoPlayer.playbackRate = cfg.rate;
-      expoPlayer.volume = cfg.volume;
+      expoPlayer.playbackRate = preset === 'bass' ? 0.97 : 1.0;
     } catch {}
   },
 
   setSleepTimer: (minutes) => {
-    if (sleepTimer) { clearInterval(sleepTimer); sleepTimer = null; }
+    if (sleepTimer) clearInterval(sleepTimer);
     if (minutes === null) { set({ sleepTimerRemaining: null }); return; }
-
     let remaining = minutes * 60;
     set({ sleepTimerRemaining: remaining });
-
     sleepTimer = setInterval(() => {
       remaining -= 1;
       if (remaining <= 0) {
         clearInterval(sleepTimer!);
-        sleepTimer = null;
         set({ sleepTimerRemaining: null });
-        get().togglePlayPause().catch(() => {});
-      } else {
-        set({ sleepTimerRemaining: remaining });
-      }
+        get().pause();
+      } else set({ sleepTimerRemaining: remaining });
     }, 1000);
   },
 }));
