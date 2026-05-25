@@ -15,10 +15,10 @@ let RNTPEvent: any = null;
 let RNTPState: any = null;
 let RepeatMode: any = null;
 let AppKilledPlaybackBehavior: any = null;
-let isTrackPlayerAvailable = isAvailable; console.log("[PlayerStore] isTrackPlayerAvailable:", isTrackPlayerAvailable, "RNTP:", !!RNTP);
+let isTrackPlayerAvailable = isAvailable; console.log("[PlayerStore Debug] Capability:", !!Capability, "CapabilityKeys:", Object.keys(RNTP?.Capability || {}), "Event:", !!RNTPEvent, "EventKeys:", Object.keys(RNTP?.Event || {})); console.log("[PlayerStore] isTrackPlayerAvailable:", isTrackPlayerAvailable, "RNTP:", !!RNTP);
 
 if (isTrackPlayerAvailable && RNTP) {
-  TrackPlayer = RNTP.TrackPlayer;
+  TrackPlayer = RNTP.default;
   Capability = RNTP.Capability;
   RNTPEvent = RNTP.Event;
   RNTPState = RNTP.State;

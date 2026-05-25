@@ -4,7 +4,7 @@ export async function setupPlayer(): Promise<boolean> {
   if (!isAvailable || !RNTP) return false;
   
   try {
-    const { TrackPlayer, Capability, AppKilledPlaybackBehavior } = RNTP;
+    const TrackPlayer = RNTP.default; const { Capability, AppKilledPlaybackBehavior } = RNTP;
     
     // We only need updateOptions here, because RNTP setupPlayer is typically called
     // at the root, or we can just configure options so the media session has buttons.
