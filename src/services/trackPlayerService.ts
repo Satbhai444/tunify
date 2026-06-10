@@ -6,14 +6,9 @@ export async function setupPlayer(): Promise<boolean> {
   try {
     const TrackPlayer = RNTP.default; const { Capability, AppKilledPlaybackBehavior } = RNTP;
     
-    // We only need updateOptions here, because RNTP setupPlayer is typically called
-    // at the root, or we can just configure options so the media session has buttons.
-    // If not set up, it will throw, but it's safe if handled.
     try {
       await TrackPlayer.setupPlayer();
-    } catch(e) {
-      // Already setup
-    }
+    } catch(e) {}
 
     await TrackPlayer.updateOptions({
       android: {
@@ -32,6 +27,12 @@ export async function setupPlayer(): Promise<boolean> {
         Capability.SkipToNext,
         Capability.SkipToPrevious,
       ],
+      notificationCapabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+      ],
       progressUpdateEventInterval: 2,
     });
     return true;
@@ -41,6 +42,4 @@ export async function setupPlayer(): Promise<boolean> {
   }
 }
 
-export async function playbackService() {
-  // Handled in index.ts via PlaybackService.ts
-}
+export async function playbackService() {}

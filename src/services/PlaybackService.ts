@@ -1,45 +1,45 @@
-import { isAvailable, RNTP } from '../utils/nativePlayer';
-
 export default async function PlaybackService() {
-  console.log('[PlaybackService] Initialized!');
+  console.log('[PlaybackService] INIT');
+
+  const { isAvailable, RNTP } = require('../utils/nativePlayer');
   if (!isAvailable || !RNTP) return;
   const TrackPlayer = RNTP.default;
 
-  // Lazy load store
   const { usePlayerStore } = require('../stores/playerStore');
 
   try {
-    TrackPlayer.addEventListener('remote-play', () => {
-      console.log('[PlaybackService] REMOTE PLAY');
+    TrackPlayer.addEventListener('remote-play', async () => {
+      console.log('REMOTE PLAY TRIGGERED');
+      console.log('TRACKPLAYER STATE:', await TrackPlayer.getState());
       usePlayerStore.getState().resume();
     });
-    
-    TrackPlayer.addEventListener('remote-pause', () => {
-      console.log('[PlaybackService] REMOTE PAUSE');
+
+    TrackPlayer.addEventListener('remote-pause', async () => {
+      console.log('REMOTE PAUSE TRIGGERED');
+      console.log('TRACKPLAYER STATE:', await TrackPlayer.getState());
       usePlayerStore.getState().pause();
     });
 
     TrackPlayer.addEventListener('remote-next', () => {
-      console.log('[PlaybackService] REMOTE NEXT');
+      console.log('REMOTE NEXT TRIGGERED');
       usePlayerStore.getState().skipNext();
     });
 
     TrackPlayer.addEventListener('remote-previous', () => {
-      console.log('[PlaybackService] REMOTE PREVIOUS');
+      console.log('REMOTE PREV TRIGGERED');
       usePlayerStore.getState().skipPrevious();
     });
 
     TrackPlayer.addEventListener('remote-stop', () => {
-      console.log('[PlaybackService] REMOTE STOP');
+      console.log('REMOTE STOP TRIGGERED');
       TrackPlayer.reset();
     });
 
-    TrackPlayer.addEventListener('remote-seek', (event: any) => {
-      console.log('[PlaybackService] REMOTE SEEK', event.position);
+    TrackPlayer.addEventListener('remote-seek', (event) => {
+      console.log('REMOTE SEEK TRIGGERED', event.position);
       usePlayerStore.getState().seekTo(event.position);
     });
-
   } catch (e) {
-    console.log('[PlaybackService] Event registration failed', e);
+    console.log('[PlaybackService] ERROR', e);
   }
 }
