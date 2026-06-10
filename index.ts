@@ -9,7 +9,10 @@ const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 if (true) {
   try {
     const TrackPlayer = require('react-native-track-player').default || require('react-native-track-player');
-    TrackPlayer.registerPlaybackService(() => require('./src/services/PlaybackService'));
+    TrackPlayer.registerPlaybackService(() => {
+      const service = require('./src/services/PlaybackService');
+      return service.default || service;
+    });
   } catch (e) {
     console.warn('[Index] TrackPlayer service registration skipped:', e);
   }

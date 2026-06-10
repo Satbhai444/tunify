@@ -1,6 +1,6 @@
 import { isAvailable, RNTP } from '../utils/nativePlayer';
 
-module.exports = async function() {
+export default async function PlaybackService() {
   console.log('[PlaybackService] Initialized!');
   if (!isAvailable || !RNTP) return;
   const TrackPlayer = RNTP.default;
@@ -11,12 +11,12 @@ module.exports = async function() {
   try {
     TrackPlayer.addEventListener('remote-play', () => {
       console.log('[PlaybackService] REMOTE PLAY');
-      usePlayerStore.getState().togglePlayPause();
+      usePlayerStore.getState().resume();
     });
     
     TrackPlayer.addEventListener('remote-pause', () => {
       console.log('[PlaybackService] REMOTE PAUSE');
-      usePlayerStore.getState().togglePlayPause();
+      usePlayerStore.getState().pause();
     });
 
     TrackPlayer.addEventListener('remote-next', () => {
@@ -34,7 +34,7 @@ module.exports = async function() {
       TrackPlayer.reset();
     });
 
-    TrackPlayer.addEventListener('remote-seek', (event) => {
+    TrackPlayer.addEventListener('remote-seek', (event: any) => {
       console.log('[PlaybackService] REMOTE SEEK', event.position);
       usePlayerStore.getState().seekTo(event.position);
     });
@@ -42,4 +42,4 @@ module.exports = async function() {
   } catch (e) {
     console.log('[PlaybackService] Event registration failed', e);
   }
-};
+}
